@@ -1,13 +1,18 @@
 #include <bits/stdc++.h>
 using namespace std;
-const int N = 4e6, mod = 1e9 + 7;
- 
+const int N = 2e6, mod = 1e9 + 7;
+
 template <const int32_t MOD>
 struct modint
 {
     int32_t value;
     modint() = default;
-    modint(int32_t value_) : value(value_) {}
+    modint(int64_t value_)
+    {
+        value = int32_t(value_ % MOD);
+        if (value < 0)
+            value += MOD;
+    }
     inline modint<MOD> operator+(modint<MOD> other) const
     {
         int32_t c = this->value + other.value;
@@ -72,9 +77,9 @@ template <int32_t MOD>
 istream &operator>>(istream &in, modint<MOD> &n) { return in >> n.value; }
 template <int32_t MOD>
 ostream &operator<<(ostream &out, modint<MOD> n) { return out << n.value; }
- 
+
 using mint = modint<mod>;
- 
+
 struct Combi
 {
     int n;
@@ -97,7 +102,7 @@ struct Combi
     inline mint ncr(int n, int k) { return (n < k or n < 0 or k < 0) ? 0 : facts[n] * finvs[k] * finvs[n - k]; }
 };
 Combi C(N);
- 
+
 mint yo(int n, int win)
 {
     if (n == 2)
@@ -119,7 +124,7 @@ mint yo(int n, int win)
     }
     return ans;
 }
- 
+
 int main()
 {
     // 1. Basic Modular Arithmetic
@@ -128,19 +133,19 @@ int main()
     cout << "a - b = " << a - b << endl;
     cout << "a * b = " << a * b << endl;
     cout << "a / b = " << a / b << endl;
- 
+
     // 2. Modular Exponentiation
     cout << "a^3 = " << a.pow(3) << endl;
- 
+
     // 3. Modular Inverse
     cout << "a^-1 = " << a.inv() << endl;
- 
+
     // 4. Combinatorics Calculations
     int n = 5, r = 2;
     cout << "n! = " << C.fact(n) << endl;
     cout << "n!^-1 = " << C.finv(n) << endl;
     cout << "nCr = " << C.ncr(n, r) << endl;
- 
+
     // 5. Paths in a Grid
     int grid_n = 4, grid_m = 3;
     cout << "Paths in a grid: " << C.ncr(grid_n + grid_m - 2, grid_n - 1) << endl;
