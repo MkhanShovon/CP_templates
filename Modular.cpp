@@ -61,6 +61,19 @@ struct modint
         }
         return y;
     }
+
+    modint<MOD> pow(modint<MOD> k) const
+    {
+        modint<MOD> x = *this, y = 1;
+        for (; k.value; k.value >>= 1)
+        {
+            if (k.value & 1)
+                y *= x;
+            x *= x;
+        }
+        return y;
+    }
+    
     modint<MOD> inv() const { return pow(MOD - 2); } // MOD must be a prime
     inline modint<MOD> operator/(modint<MOD> other) const { return *this * other.inv(); }
     inline modint<MOD> operator/=(modint<MOD> other) { return *this *= other.inv(); }
