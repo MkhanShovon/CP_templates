@@ -1,8 +1,3 @@
-#include <bits/stdc++.h>
-using namespace std;
-
-using ll = long long;
-
 template <typename T>
 struct BIT {
 private:
@@ -72,16 +67,8 @@ public:
         }
         return pos + 1;
     }
-};
 
-int main() {
-    BIT<int> bit(5); // Initialize BIT for size 5
-    bit.upd(1, 1); // arr[1] += 1
-    bit.upd(2, 2); // arr[2] += 2
-    bit.upd(3, 3); // arr[3] += 3
-    std::cout << bit.query(1, 3) << std::endl; // Outputs 6 (1 + 2 + 3)
-    bit.upd(2, 4, 2); // Add 2 to arr[2..4]
-    std::cout << bit.query(1, 3) << std::endl; // Outputs 10 (1 + 4 + 5)
-    std::cout << bit.bit_search(6) << std::endl; // Outputs 3 (smallest i where sum up to i >= 6)
-    return 0;
-}
+    void clear() {
+        t.assign(n + 1, neutral_value);
+    }
+};
