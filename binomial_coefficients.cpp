@@ -32,6 +32,16 @@ void inverses() {
 
 ll choose(int n, int r) { return fac[n] * inv[r] % MOD * inv[n - r] % MOD; }
 
+ll dp[35][35];
+ll ncr(int n,int r){
+    if(n==r || r==0)return 1;
+    else if(r==1)return n;
+    else if(dp[n][r]!=(-1))return dp[n][r];
+    dp[n][r]=ncr(n-1,r)+ncr(n-1,r-1);
+    return dp[n][r];
+
+}
+
 // without MOD
 long long comb(int n, int k)
 {
