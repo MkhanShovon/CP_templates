@@ -17,7 +17,7 @@ ll moduloMultiplication(ll a, ll b, ll mod) {
 }
 
 // Modular exponentiation: (x^n) % m
-ll modpow(ll x, ll n, int m = mod) {
+ll modpow(ll x, ll n, ll m = mod) {
     if (x == 0 && n == 0) return 1; // undefined case
     ll res = 1;
     while (n > 0) {
@@ -39,6 +39,21 @@ std::tuple<long long, long long, long long> extended_gcd(long long a, long long 
     ll g, x, y;
     tie(g, x, y) = extended_gcd(b, a % b);
     return {g, y, x - (a / b) * y};
+}
+
+array<ll, 3> extend_euclid(ll a, ll b) {
+	// we know that (1 * a) + (0 * b) = a and (0 * a) + (1 * b) = b
+	array<ll, 3> x = {1, 0, a};
+	array<ll, 3> y = {0, 1, b};
+
+	// run extended Euclidean algo
+	while (y[2] > 0) {
+		// keep subtracting multiple of one equation from the other
+		ll k = x[2] / y[2];
+		for (int i = 0; i < 3; i++) { x[i] -= k * y[i]; }
+		swap(x, y);
+	}
+	return x;  // x[0] * a + x[1] * b = x[2], x[2] = gcd(a, b)
 }
 
 // Modular inverse using Extended Euclid (works for any m if gcd(b, m) == 1)

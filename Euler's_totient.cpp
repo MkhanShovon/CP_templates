@@ -1,18 +1,18 @@
 #include<bits/stdc++.h> 
 using namespace std;
 
-int phi(int n) {//O(sqrt(n))
-    int result = n;
-    for (int i = 2; i * i <= n; i++) {
-        if (n % i == 0) {
-            while (n % i == 0)
-                n /= i;
-            result -= result / i;
-        }
+using ll = long long;
+
+ll phi(ll n) {
+  ll ans = n, m = n;
+  for (ll i = 2; i * i <= m; i++) {
+    if (m % i == 0) {
+      while (m % i == 0) m /= i;
+      ans = ans / i * (i - 1);
     }
-    if (n > 1)
-        result -= result / n;
-    return result;
+  }
+  if (m > 1) ans = ans / m * (m - 1);
+  return ans;
 }
 
 
