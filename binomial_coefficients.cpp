@@ -31,6 +31,9 @@ void inverses() {
 }
 
 ll choose(int n, int r) { return fac[n] * inv[r] % MOD * inv[n - r] % MOD; }
+ll add(ll a, ll b) { return (a + b) % MOD; }
+ll sub(ll a, ll b) { return (a - b + MOD) % MOD; }
+ll mul(ll a, ll b) { return (a * b) % MOD; }
 
 ll dp[35][35];
 ll ncr(int n,int r){
