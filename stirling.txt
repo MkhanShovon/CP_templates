@@ -1,0 +1,451 @@
+Alright, let’s carefully build up your understanding of **Stirling numbers** from scratch.
+There are actually **two kinds** of Stirling numbers, and that’s where a lot of confusion comes from. Let’s go step by step.
+
+---
+
+# 1. Stirling Numbers of the **Second Kind** (Partition counts)
+
+👉 Denoted by $S(n, k)$.
+Meaning: **The number of ways to partition a set of $n$ elements into exactly $k$ non-empty unlabeled subsets.**
+
+Example:
+
+* $S(3,2) = 3$. Why? For set $\{1,2,3\}$, partitions into 2 parts are:
+
+  * $\{1,2\}, \{3\}$
+  * $\{1,3\}, \{2\}$
+  * $\{2,3\}, \{1\}$
+
+### Formula (Recurrence):
+
+$$
+S(n,k) = k \cdot S(n-1, k) + S(n-1, k-1)
+$$
+
+**Explanation of recurrence**:
+
+* Put the $n$-th element into one of the existing $k$ subsets → $k \cdot S(n-1,k)$.
+* Or start a new subset containing only the $n$-th element → $S(n-1,k-1)$.
+
+### Explicit Formula:
+
+$$
+S(n,k) = \frac{1}{k!} \sum_{i=0}^{k} (-1)^i \binom{k}{i} (k-i)^n
+$$
+
+---
+
+# 2. Stirling Numbers of the **First Kind** (Permutation cycle counts)
+
+👉 Denoted by $c(n, k)$ or $\left[ {n \atop k} \right]$.
+Meaning: **The number of permutations of $n$ elements with exactly $k$ disjoint cycles.**
+
+Example:
+
+* $c(3,1) = 2$. Permutations of $\{1,2,3\}$ with 1 cycle are the 3-cycles:
+
+  * (1 2 3), (1 3 2).
+* $c(3,2) = 3$. Permutations with 2 cycles:
+
+  * (1)(2 3), (2)(1 3), (3)(1 2).
+
+### Formula (Recurrence):
+
+$$
+c(n,k) = (n-1) \cdot c(n-1, k) + c(n-1, k-1)
+$$
+
+**Explanation**:
+
+* Insert the new element into one of the existing $(n-1)$ cycles → $(n-1)\cdot c(n-1,k)$.
+* Or start a new cycle with just this element → $c(n-1, k-1)$.
+
+---
+
+# 3. Relation to other combinatorics
+
+* **Second kind → partitions** (connects to **Bell numbers**: $B_n = \sum_{k=1}^n S(n,k)$).
+* **First kind → cycles in permutations** (connects to **factorials**: $n! = \sum_{k=1}^n c(n,k)$).
+
+There are also **signed Stirling numbers of the first kind**:
+
+$$
+s(n,k) = (-1)^{n-k} c(n,k)
+$$
+
+---
+
+# 4. Quick Table
+
+For intuition, here are the first few:
+
+### Stirling numbers of the 2nd kind $S(n,k)$
+
+| n\k | 1 | 2 | 3 | 4 |
+| --- | - | - | - | - |
+| 1   | 1 |   |   |   |
+| 2   | 1 | 1 |   |   |
+| 3   | 1 | 3 | 1 |   |
+| 4   | 1 | 7 | 6 | 1 |
+
+### Stirling numbers of the 1st kind $c(n,k)$
+
+| n\k | 1 | 2  | 3 | 4 |
+| --- | - | -- | - | - |
+| 1   | 1 |    |   |   |
+| 2   | 1 | 1  |   |   |
+| 3   | 2 | 3  | 1 |   |
+| 4   | 6 | 11 | 6 | 1 |
+
+---
+
+# 5. Where they show up
+
+* Counting partitions (second kind) → dynamic programming, probability, Bell numbers, distribution problems.
+* Counting cycles (first kind) → analyzing permutations, polynomial expansions, random cycle structure.
+
+---
+
+✅ So the main difference:
+
+* **Second kind**: "How many ways to split elements into unlabeled groups?"
+* **First kind**: "How many permutations have exactly $k$ cycles?"
+
+---
+
+Do you want me to **show you some worked-out examples with the recurrence step by step** (like computing $S(5,3)$ and $c(5,2)$) so the mechanics are 100% clear?
+
+
+
+
+
+
+
+Perfect! The **Möbius function** and **Möbius inversion** are core number theory tools — they look abstract at first, but once you see the mechanics and examples, they click. Let’s go step by step.
+
+---
+
+# 1. Möbius Function $\mu(n)$
+
+The Möbius function is defined for integers $n \geq 1$:
+
+$$
+\mu(n) =
+\begin{cases}
+1 & \text{if } n=1 \\
+0 & \text{if } n \text{ is divisible by a square prime (like } p^2 \mid n \text{)} \\
+(-1)^k & \text{if } n \text{ is a product of } k \text{ distinct primes}
+\end{cases}
+$$
+
+---
+
+### Examples:
+
+* $\mu(1) = 1$
+* $\mu(2) = -1$ (one prime factor)
+* $\mu(3) = -1$ (one prime factor)
+* $\mu(6) = +1$ (two distinct primes $2\cdot 3$)
+* $\mu(12) = 0$ (since $12 = 2^2 \cdot 3$ has a square factor)
+
+---
+
+# 2. Why is Möbius function important?
+
+It comes from the **Inclusion–Exclusion principle** at the number theory level.
+It lets us “invert” divisor sums.
+
+There’s a key identity:
+
+$$
+\sum_{d \mid n} \mu(d) =
+\begin{cases}
+1 & \text{if } n=1 \\
+0 & \text{if } n > 1
+\end{cases}
+$$
+
+This is the arithmetic form of inclusion–exclusion.
+
+---
+
+# 3. Möbius Inversion Formula
+
+Suppose you have **two functions on positive integers** $f(n)$ and $g(n)$ related by:
+
+$$
+g(n) = \sum_{d \mid n} f(d) \quad \text{(Dirichlet convolution with 1)}
+$$
+
+That is, $g(n)$ is the sum of $f(d)$ over all divisors $d$ of $n$.
+
+Then Möbius inversion says:
+
+$$
+f(n) = \sum_{d \mid n} \mu(d) \, g\!\left(\tfrac{n}{d}\right)
+$$
+
+This allows you to “invert” divisor-sums.
+
+---
+
+### Example 1: Euler’s Totient $\varphi(n)$
+
+It’s known:
+
+$$
+n = \sum_{d \mid n} \varphi(d)
+$$
+
+Apply Möbius inversion:
+
+$$
+\varphi(n) = \sum_{d \mid n} \mu(d) \cdot \frac{n}{d}
+$$
+
+This is a standard formula for totients.
+
+---
+
+### Example 2: Coprime Pairs Count
+
+Let:
+
+* $f(n)$ = number of integers $\leq N$ that are \*\*exactly divisible by $n$}.
+* $g(n)$ = number of integers $\leq N$ that are divisible by $n$.
+
+Clearly:
+
+$$
+g(n) = \sum_{d \mid n} f(d)
+$$
+
+So by Möbius inversion:
+
+$$
+f(n) = \sum_{d \mid n} \mu(d) g\!\left(\tfrac{n}{d}\right)
+$$
+
+This formula is often used in competitive programming for counting gcd-related things.
+
+---
+
+# 4. Connection with Dirichlet Convolution
+
+In number theory we define convolution:
+
+$$
+(f * g)(n) = \sum_{d \mid n} f(d) g\!\left(\tfrac{n}{d}\right)
+$$
+
+Key facts:
+
+* $1(n) = 1$ for all $n$.
+* Möbius $\mu$ is the **inverse of 1** under convolution.
+  So:
+
+$$
+(f * 1)(n) = g(n) \quad \iff \quad f(n) = (g * \mu)(n)
+$$
+
+That’s the algebraic heart of Möbius inversion.
+
+---
+
+# 5. Practical Uses in CP
+
+* Counting **coprime pairs**:
+  $\sum_{i=1}^n \sum_{j=1}^m [\gcd(i,j)=1]$
+  solved using Möbius function.
+* Multiplicative function formulas (Euler’s totient, Jordan’s totient).
+* Polynomial / subset inversions (generalized Möbius inversion on lattices, like subset DP).
+* Problems that involve “exactly k” vs “at least k” style divisor counts.
+
+---
+
+# 6. Generalized Möbius Inversion (Sets/Subsets)
+
+There’s also a **combinatorial version**:
+If
+
+$$
+g(S) = \sum_{T \subseteq S} f(T)
+$$
+
+then
+
+$$
+f(S) = \sum_{T \subseteq S} (-1)^{|S|-|T|} g(T)
+$$
+
+This is the **subset Möbius inversion**, which is the foundation of SOS DP (Sum Over Subsets DP).
+
+---
+
+# 7. Summary
+
+* **Möbius function $\mu(n)$:** encodes squarefreeness and parity of prime factors.
+* **Key identity:** $\sum_{d\mid n} \mu(d) = [n=1]$.
+* **Möbius inversion:** lets you invert divisor sums $g(n) = \sum_{d\mid n} f(d)$.
+* **Applications:** totient formula, coprime counting, gcd-based DP, multiplicative functions, subset sums.
+
+---
+
+👉 Would you like me to now **work through a concrete coding example** (like “count coprime pairs in $[1,n]$” or “compute totient for all numbers up to $N$ using Möbius inversion”) so you see how to apply it in practice?
+
+
+
+
+
+
+
+
+
+Excellent, you found **stoyan\_malinin’s blog** about *“DP in Number Theory”*.
+This blog is basically about a **dynamic programming reinterpretation of Möbius inversion / inclusion-exclusion** — a very practical way to count things like gcd/lcm pair statistics. Let’s unpack it carefully.
+
+---
+
+## 1. The Core Problem
+
+> “Find the number of coprime pairs of integers from 1 to n.”
+
+That is: count pairs $(x,y)$ with $1 \le x < y \le n$ and $\gcd(x,y)=1$.
+
+---
+
+## 2. First Observation
+
+If $\gcd(x,y) = d$, then **both numbers must be divisible by $d$**.
+So, we can first count all pairs where both numbers are divisible by $d$:
+
+$$
+\text{pairs divisible by } d = \binom{\lfloor n/d \rfloor}{2} = \frac{\lfloor n/d \rfloor(\lfloor n/d \rfloor-1)}{2}
+$$
+
+Let’s call this value:
+
+$$
+dp[d] = \binom{\lfloor n/d \rfloor}{2}
+$$
+
+---
+
+## 3. What does $dp[d]$ represent?
+
+It counts all pairs whose gcd is a **multiple of $d$**.
+
+* Example: $dp[2]$ counts pairs with gcd $2, 4, 6, …$.
+* Example: $dp[3]$ counts pairs with gcd $3, 6, 9, …$.
+  So it **overcounts** if we want “gcd exactly $d$”.
+
+---
+
+## 4. Fixing Overcounting (Exclusion Step)
+
+We want to transform $dp[d]$ into the **exact number of pairs with gcd = $d$**.
+
+Notice:
+
+* $dp[n]$ is already exact (since gcd can’t be bigger than $n$).
+* More generally:
+
+  $$
+  \text{exact}[d] = dp[d] - \sum_{k=2d}^{n} \text{exact}[k]
+  $$
+
+This is the same as inclusion–exclusion:
+
+* Subtract off pairs where gcd is $2d, 3d, \dots$.
+* After subtraction, only gcd = $d$ pairs remain.
+
+That’s why the algorithm iterates **downward** from $d=n \to 1$:
+when we process $d$, the higher multiples are already correct.
+
+---
+
+## 5. The Algorithm
+
+1. Precompute initial array:
+
+   $$
+   dp[d] = \binom{\lfloor n/d \rfloor}{2}
+   $$
+2. Iterate $d$ from $n$ down to $1$.
+   For each multiple $k=2d,3d,\dots$:
+
+   $$
+   dp[d] \mathrel{-}= dp[k]
+   $$
+
+   After this, $dp[d]$ becomes the **exact number of pairs with gcd = $d$**.
+
+At the end:
+
+* $dp[1]$ = number of coprime pairs (since gcd=1).
+* More generally, $dp[d]$ = number of pairs with gcd = $d$.
+
+---
+
+## 6. Relation to Möbius Inversion
+
+This is literally Möbius inversion in disguise.
+Recall: If
+
+$$
+g(d) = \sum_{k: d \mid k} f(k),
+$$
+
+then
+
+$$
+f(d) = \sum_{k: d \mid k} \mu(k/d) g(k).
+$$
+
+Here:
+
+* $dp[d]$ before correction = “all pairs divisible by $d$” = sum of exact gcd counts for multiples of $d$.
+* The correction step subtracting multiples is exactly Möbius inversion.
+
+So this **“DP trick” = Möbius inversion, implemented bottom-up.**
+
+---
+
+## 7. Extensions (Examples from blog)
+
+* **Example 1: gcd=1 pairs**
+  → just output $dp[1]$.
+
+* **Example 2: sum of lcm’s**
+  If gcd is $d$, then the pair is $d \cdot (a,b)$ with $\gcd(a,b)=1$.
+  Use the same idea but instead of counting pairs, add contribution:
+
+  $$
+  \text{lcm}(x,y) = \frac{x \cdot y}{\gcd(x,y)}.
+  $$
+
+  You can compute by grouping on gcd.
+
+* **Example 3 (other tasks)**
+  Similar style: count by gcd class, then subtract multiples.
+
+---
+
+## 8. Why It’s Called “DP in Number Theory”
+
+* You’re not writing a combinatorial formula, you’re doing **array DP over divisors**.
+* Transition: correct $dp[d]$ using results from multiples.
+* It’s equivalent to Möbius inversion, but feels algorithmic and simple.
+
+---
+
+✅ **Summary:**
+
+* Compute raw counts over multiples ($dp[d]$).
+* Iterate downward, subtract multiples to isolate exact gcd.
+* This is inclusion–exclusion / Möbius inversion in disguise.
+* General trick: *Count with gcd $\geq d$, then fix to gcd $=d$.*
+
+---
+
+Do you want me to **take the coprime pairs problem** and show you a **concrete worked example for $n=6$** with all the $dp[d]$ values before/after correction, so you can see the numbers cancel out step by step?
