@@ -34,8 +34,6 @@ inline void FastIO()
 using ll = long long;
 using lld = long double;
 using ull = unsigned long long;
-using i128 = __int128_t;
-
 
 // Constants
 const lld pi = 3.141592653589793238;
@@ -49,7 +47,6 @@ typedef vector<pll> vpll;
 typedef vector<string> vs;
 typedef unordered_map<ll, ll> umll;
 typedef map<ll, ll> mll;
-typedef priority_queue<int, vector<int>, greater<int>> minHeap;
 
 // Macros
 #define ff first
@@ -169,16 +166,26 @@ void preSolve()
     // allocateStackMax();
 }
 
+//!n=(n−1)(!(n−1)+!(n−2))
+//!n=n!∑(k = 0 to n) ​k!(−1)k​
+//!n=n⋅!(n−1)+(−1)n
 // Code
 void solve()
 {
 
     ll n;
     cin >> n;
-    // ll m;
-    // cin >> m;
-    vll v(n);
-    cin >> v;
+    ll m;
+    cin >> m;
+    
+    vll dp(n + 1);
+    dp[0] = 1;
+    dp[1] = 0;
+    fls(i, 2, n){
+        dp[i] = ((i - 1) * ((dp[i - 1] + dp[i - 2]) % m)) % m;
+    }
+    dp.erase(dp.begin());
+    print(dp);
 }
 // Main
 signed main()
@@ -204,3 +211,24 @@ signed main()
     return 0;
 }
 // End
+
+/*
+#include <atcoder/modint>
+#include <bits/stdc++.h>
+
+using namespace std;
+using mint = atcoder::modint;
+
+int main() {
+	int n, m;
+	cin >> n >> m;
+	mint::set_mod(m);
+
+	mint c = 1;
+	for (int i = 1; i <= n; i++) {
+		c = (c * i) + (i % 2 == 1 ? -1 : 1);
+		cout << c.val() << ' ';
+	}
+	cout << endl;
+}
+*/
