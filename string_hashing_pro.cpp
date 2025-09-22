@@ -166,14 +166,14 @@ void preSolve()
     // allocateStackMax();
 }
 
-const int N = 300010; // Adjusted to 3e5+10
+const int N = 300010; 
 
 ull power(ull n, ull k, ull mod)
 {
     ull ans = 1 % mod;
     n %= mod;
     if (n > mod)
-        n += mod; // Adjusted for unsigned
+        n += mod; 
     while (k)
     {
         if (k & 1)
@@ -254,8 +254,7 @@ void solve()
     {
         ll l, r;
         cin >> l >> r;
-        auto hs = h1.get_hash(l + 1, r); // Adjusted for 0-based l r to 1-based, note r+1 because r inclusive? Wait, no.
-        // Wait, query l r is s[l..r-1], so get_hash(l+1, r)
+        auto hs = h1.get_hash(l + 1, r); //query l r is s[l..r-1], so get_hash(l+1, r)
         cout << ((ull)hs.first << 32 | hs.second) << edl;
     }
 }

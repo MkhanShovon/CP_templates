@@ -59,9 +59,9 @@ typedef priority_queue<int, vector<int>, greater<int>> minHeap;
 #define fl(i, n) for (ll i = 0; i < n; i++)
 #define fls(i, m, n) for (ll i = m; i <= n; i++)
 #define rl(i, m, n) for (ll i = n; i >= m; i--)
-#define py cout << "Yes\n";
+#define py cout << "YES\n";
 #define pm cout << "-1\n";
-#define pn cout << "No\n";
+#define pn cout << "NO\n";
 #define vr(v) v.begin(), v.end()
 #define rv(v) v.rbegin(), v.rend()
 #define edl '\n'

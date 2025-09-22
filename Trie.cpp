@@ -1,106 +1,188 @@
-class Trie {
-
-    class Node {
-        Node* link[26];
-        int cntEndswith = 0, cntPref = 0;
+class Trie
+{
+private:
+    class Node
+    {
+        Node *links[26];    // Assuming lowercase English alphabet
+        int cntEndWith = 0; // Count of words ending at this node
+        int cntPrefix = 0;  // Count of words with prefix up to this node
 
     public:
-        Node() {
-            for (int i = 0; i < 26; i++) {
-                link[i] = NULL;
+        Node()
+        {
+            for (int i = 0; i < 26; i++)
+            {
+                links[i] = nullptr;
             }
         }
 
-        bool containsch(char c) {
-            return link[c - 'a'] != NULL;
+        ~Node()
+        {
+            for (int i = 0; i < 26; i++)
+            {
+                delete links[i];
+            }
         }
 
-        Node* getNext(char c) {
-            return link[c - 'a'];
+        bool containsChar(char c) const
+        {
+            return links[c - 'a'] != nullptr;
         }
 
-        void putchar(char c) {
-            link[c - 'a'] = new Node();
+        Node *getNext(char c) const
+        {
+            return links[c - 'a'];
         }
 
-        void setEnd() {
-            cntEndswith++;
+        void putChar(char c, Node *node)
+        {
+            links[c - 'a'] = node;
         }
 
-        void increaseCntPref() {
-            cntPref++;
+        void incrementEnd()
+        {
+            cntEndWith++;
         }
 
-        void decreaseCntPref() {
-            cntPref--;
+        void decrementEnd()
+        {
+            if (cntEndWith > 0)
+                cntEndWith--;
         }
 
-        void decEnd() {
-            cntEndswith--;
+        void incrementPrefix()
+        {
+            cntPrefix++;
         }
 
-        int getCntWord() {
-            return cntEndswith;
+        void decrementPrefix()
+        {
+            if (cntPrefix > 0)
+                cntPrefix--;
         }
 
-        int getCntPref() {
-            return cntPref;
+        int getEndCount() const
+        {
+            return cntEndWith;
+        }
+
+        int getPrefixCount() const
+        {
+            return cntPrefix;
         }
     };
 
-    Node* root;
+    Node *root;
 
 public:
-
-    Trie() {
+    Trie()
+    {
         root = new Node();
     }
 
-    void insert(string &word) {
-        Node* node = root;
-        for (auto c : word) {
-            if (!node->containsch(c)) {
-                node->putchar(c);
-            }
-             // Only increment prefix count during insertion
-            node = node->getNext(c);
-            node->increaseCntPref(); 
-        }
-        node->setEnd();  // Increment end count to mark word insertion
+    ~Trie()
+    {
+        delete root;
     }
 
-    int countWordsEqualTo(string &word) {
-        Node* node = root;
-        for (auto c : word) {
-            if (!node->containsch(c)) {
-                return 0;  // Word doesn't exist in Trie
+    // Insert a word into the Trie
+    void insert(const string &word)
+    {
+        Node *node = root;
+        for (char c : word)
+        {
+            if (!node->containsChar(c))
+            {
+                node->putChar(c, new Node());
             }
             node = node->getNext(c);
+            node->incrementPrefix();
         }
-        return node->getCntWord();  // Return how many times the word was inserted
+        node->incrementEnd();
     }
 
-    int countWordsStartingWith(string &prefix) {
-        Node* node = root;
-        for (auto c : prefix) {
-            if (!node->containsch(c)) {
-                return 0;  // Prefix doesn't exist in Trie
+    // Count words equal to the given word
+    int countWordsEqualTo(const string &word) const
+    {
+        Node *node = root;
+        for (char c : word)
+        {
+            if (!node->containsChar(c))
+            {
+                return 0;
             }
             node = node->getNext(c);
         }
-        return node->getCntPref();  // Return how many words share this prefix
+        return node->getEndCount();
     }
 
-    void erase(string &word) {
-        Node* node = root;
-        for (auto c : word) {
-            if (!node->containsch(c)) {
-                return;  // Word doesn't exist, can't erase
+    // Count words starting with the given prefix
+    int countWordsStartingWith(const string &prefix) const
+    {
+        Node *node = root;
+        for (char c : prefix)
+        {
+            if (!node->containsChar(c))
+            {
+                return 0;
             }
-              // Decrease prefix count along the path
             node = node->getNext(c);
-            node->decreaseCntPref();
         }
-        node->decEnd();  // Decrease end count to mark the word as erased
+        return node->getPrefixCount();
+    }
+
+    // Erase a word from the Trie
+    // Erase a word from the Trie
+    void erase(const string &word)
+    {
+        // Stack to store nodes and characters for cleanup
+        vector<pair<Node *, char>> nodes;
+        Node *node = root;
+
+        // Traverse the word and collect nodes
+        for (char c : word)
+        {
+            if (!node->containsChar(c))
+            {
+                return; // Word not found
+            }
+            nodes.push_back({node, c});
+            node = node->getNext(c);
+            node->decrementPrefix();
+        }
+        node->decrementEnd();
+
+        // Clean up nodes if necessary
+        for (auto it = nodes.rbegin(); it != nodes.rend(); ++it)
+        {
+            Node *curr = it->first;
+            char c = it->second;
+            Node *child = curr->getNext(c);
+
+            // If the child node has no prefixes and no words ending, delete it
+            if (child->getPrefixCount() == 0 && child->getEndCount() == 0)
+            {
+                delete child;
+                curr->putChar(c, nullptr);
+            }
+            else
+            {
+                // If the node still has prefixes or words ending, stop cleanup
+                break;
+            }
+        }
+    }
+
+    // Check if a word exists in the Trie
+    bool contains(const string &word) const
+    {
+        return countWordsEqualTo(word) > 0;
+    }
+
+    // Clear the entire Trie
+    void clear()
+    {
+        delete root;
+        root = new Node();
     }
 };
