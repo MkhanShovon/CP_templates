@@ -39,8 +39,7 @@ using i128 = __int128_t;
 
 // Constants
 const lld pi = 3.141592653589793238;
-const ll INF = LONG_LONG_MAX;
-const ll mod = 1e9 + 7;
+const ll INF = 1e16;
 
 // TypeDEf
 typedef pair<ll, ll> pll;
