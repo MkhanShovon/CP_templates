@@ -1,16 +1,18 @@
-// const ll N = 1e6 + 10;
-// vector<bool> is_prime(N + 10, true);
-// vll pf(N + 10);
-
-// void sieve()
-// {
-//     is_prime[0] = is_prime[1] = false;
-//     for (int i = 2; i <= N; i++)
-//     {
-//         if (is_prime[i] && (long long)i * i <= N)
-//         {
-//             for (int j = i * i; j <= N; j += i)
-//                 is_prime[j] = false;
-//         }
-//     }
-// }
+const ll N = 300;
+vll prime;
+void sieve()
+{
+    vector<bool> is_prime(N + 1, true);
+    is_prime[0] = is_prime[1] = false;
+    for (ll i = 2; i * i <= N; i++)
+    {
+        if (is_prime[i])
+        {
+            prime.pb(i);
+            for (ll j = i * i; j <= N; j += i)
+            {
+                is_prime[j] = false;
+            }
+        }
+    }
+}
