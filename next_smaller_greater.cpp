@@ -59,3 +59,23 @@ vector<ll> nextGreater(vector<ll> v)
     }
     return ans;
 }
+
+vector<ll> prvGreater(vector<ll> v)
+{
+    stack<ll> s;
+    ll i = 0;
+    ll n = v.size();
+    reverse(v.begin(), v.end());
+    vector<ll> ans(n, -1);
+    while (i < n)
+    {
+        while (!s.empty() and v[s.top()] < v[i])
+        {
+            ans[n - 1 - s.top()] = n - i - 1;
+            s.pop();
+        }
+        s.push(i++);
+    }
+    // reverse(ans.begin(), ans.end());
+    return ans;
+}
