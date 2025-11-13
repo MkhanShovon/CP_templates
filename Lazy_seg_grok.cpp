@@ -130,6 +130,6 @@ int main() {
     segTree.range_update(1, 4, 2); // Add 2 to arr[1..3]
     std::cout << segTree.query(1, 4) << std::endl; // Outputs 15 (4 + 5 + 6)
     segTree.update(2, 10); // Set arr[2] to 10
-    std::cout << segTree.query(1, 4) << std::endl; // Outputs 16 (4 + 10 + 6)
+    std::cout << segTree.query(1, 4) << std::endl; // Outputs 18 (4 + 10 + 4)
     return 0;
 }
