@@ -316,6 +316,18 @@ int main()
         min_res = segTree_MinIdx.query(0, 5);
         std::cout << "Query [0, 5) (min): val=" << min_res.first << " at idx=" << min_res.second << std::endl; // {0, 3}
     }
+    
+    std::cout << "\n--- Demo 3: Range Add / Range assign w/ Index ---" << std::endl;
+    {
+        SegmentTree<ll, ll> st;
+        auto c_query = [](ll a, ll b)
+        { return (a + b) % MOD; };
+        auto c_updates = [](ll a, ll b)
+        { return b; };
+        auto a_update = [](ll node_val, ll update_val, ll len)
+        { return update_val * len % MOD; };
+        st.init(n, 0LL, -1LL, c_query, c_updates, a_update);
+    }
 
     return 0;
 }
