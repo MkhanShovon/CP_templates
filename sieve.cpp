@@ -1,4 +1,4 @@
-const ll N = 300;
+const ll N = 2e5;
 vll prime;
 void sieve()
 {
@@ -8,11 +8,18 @@ void sieve()
     {
         if (is_prime[i])
         {
-            prime.pb(i);
             for (ll j = i * i; j <= N; j += i)
             {
                 is_prime[j] = false;
             }
+        }
+    }
+
+    fls(i, 1, N)
+    {
+        if(is_prime[i])
+        {
+            prime.pb(i);
         }
     }
 }
