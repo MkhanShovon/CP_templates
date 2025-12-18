@@ -23,3 +23,19 @@ void sieve()
         }
     }
 }
+
+//collecting prime factors
+const ll N = 2e5 + 10;
+vll prime;
+vector<vll> pf(N + 10);
+void sieve()
+{
+    fls(i, 2, N)
+    {
+        if(!pf[i].empty()) continue;
+        for(ll j = i; j <= N; j += i)
+        {
+            pf[j].pb(i);
+        }
+    }
+}
