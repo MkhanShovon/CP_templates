@@ -4,27 +4,30 @@ using ll = long long;
 using vpll = vector<pair<ll, ll>> ;
 
 // Function to find all prime factors of a number
-vpll prime_factorization(int n)
-{ // O(sqrt(n))
-    vpll factors;
-    for (int i = 2; i * i <= n; i++)
-    {
-        if (n % i == 0)
-        {
-            ll cnt = 0;
-            while (n % i == 0)
-            {
-                cnt++;
-                n /= i;
+vpll factorization(ll n) {
+    vpll fac;
+    if (n % 2 == 0) {
+        ll count = 0;
+        while (n % 2 == 0) {
+            count++;
+            n /= 2;
+        }
+        fac.push_back({2, count});
+    }
+    for (long long d = 3; d * d <= n; d += 2) { 
+        if (n % d == 0) {
+            ll count = 0;
+            while (n % d == 0) {
+                count++;
+                n /= d;
             }
-            factors.push_back({i, cnt});
+            fac.push_back({d, count});
         }
     }
-    if (n > 1)
-    {
-        factors.push_back({n, 1});
+    if (n > 1) {
+        fac.push_back({n, 1});
     }
-    return factors;
+    return fac;
 }
 
 // 2. Sieve-Based Factorization (Fast for Many Queries)
