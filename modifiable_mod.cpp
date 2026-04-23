@@ -33,7 +33,7 @@ struct comb {
   comb(){}
   comb(int mx):f(mx+1),g(mx+1) {
     f[0] = 1;
-    rrep(i,mx) f[i] = f[i-1]*i;
+    for (int i = 1; i <= mx; i++) f[i] = f[i-1]*i;
     g[mx] = f[mx].ex(mod-2);
     for(int i=mx;i>0;i--) g[i-1] = g[i]*i;
   }
