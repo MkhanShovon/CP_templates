@@ -1,17 +1,17 @@
-    ll subtract = 0;
-    auto generate = [&](auto&& self, ll cur, int idx) -> void {
-        if (idx == (int)fac.size())
+vll divs;
+    function<void(ll, ll)> genDivs = [&](ll idx, ll curr)
+    {
+        if(idx == len(fac))
         {
-            if (cur < m) subtract++;
+            divs.pb(curr);
             return;
         }
-        ll p = fac[idx].ff;
-        ll e = fac[idx].ss;
-        ll mul = 1;
-        for (int j = 0; j <= e; j++)
+        auto [p, c] = fac[idx];
+        for(ll i = 0; i <= c; i++)
         {
-            self(self, cur * mul, idx + 1);
-            mul *= p;
+            genDivs(idx + 1, curr);
+            curr *= p;
         }
     };
-    generate(generate, 1LL, 0);
+
+    genDivs(0, 1);
