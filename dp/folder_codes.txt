@@ -1,0 +1,271 @@
+﻿
+===== finding_LIS_seq.cpp =====
+#include <bits/stdc++.h>
+using namespace std;
+
+// Enhanced Segment Tree that can track both max value and its index
+class AdvancedSegTree {
+private:
+    int len;
+    vector<pair<int, int>> segtree; // Stores (value, index) pairs
+    
+public:
+    AdvancedSegTree(int len) : len(len), segtree(2 * len, {INT32_MIN, -1}) {}
+    
+    void set(int ind, int val, int idx) {
+        ind += len;
+        segtree[ind] = {val, idx};
+        for (; ind > 1; ind >>= 1) {
+            segtree[ind >> 1] = max(segtree[ind], segtree[ind ^ 1]);
+        }
+    }
+    
+    pair<int, int> range_max(int from, int to) {
+        pair<int, int> res = {INT32_MIN, -1};
+        for (from += len, to += len; from < to; from >>= 1, to >>= 1) {
+            if (from & 1) res = max(res, segtree[from++]);
+            if (to & 1) res = max(res, segtree[--to]);
+        }
+        return res;
+    }
+};
+
+// Finds LIS and can reconstruct the sequence
+vector<int> find_lis_sequence(const vector<int>& a) {
+    if (a.empty()) return {};
+    
+    // Coordinate compression
+    vector<int> sorted = a;
+    sort(sorted.begin(), sorted.end());
+    map<int, int> coord_comp;
+    int cidx = 0;
+    for (int i = 0; i < sorted.size(); i++) {
+        if (i == 0 || sorted[i] != sorted[i-1]) {
+            coord_comp[sorted[i]] = cidx++;
+        }
+    }
+    
+    AdvancedSegTree st(cidx);
+    vector<int> prev(a.size(), -1); // For reconstruction
+    
+    for (int i = 0; i < a.size(); i++) {
+        int comp = coord_comp[a[i]];
+        auto [max_val, max_idx] = st.range_max(0, comp);
+        
+        int current_len = (max_val != INT32_MIN) ? max_val + 1 : 1;
+        prev[i] = (max_val != INT32_MIN) ? max_idx : -1;
+        st.set(comp, current_len, i);
+    }
+    
+    // Reconstruct the sequence
+    auto [lis_len, last_idx] = st.range_max(0, cidx);
+    vector<int> lis;
+    for (int i = last_idx; i != -1; i = prev[i]) {
+        lis.push_back(a[i]);
+    }
+    reverse(lis.begin(), lis.end());
+    return lis;
+}
+
+// Weighted LIS version (max sum instead of max length)
+int weighted_lis(const vector<int>& a, const vector<int>& weights) {
+    // Coordinate compression
+    vector<int> sorted = a;
+    sort(sorted.begin(), sorted.end());
+    map<int, int> coord_comp;
+    int cidx = 0;
+    for (int i = 0; i < sorted.size(); i++) {
+        if (i == 0 || sorted[i] != sorted[i-1]) {
+            coord_comp[sorted[i]] = cidx++;
+        }
+    }
+    
+    AdvancedSegTree st(cidx);
+    
+    for (int i = 0; i < a.size(); i++) {
+        int comp = coord_comp[a[i]];
+        auto [max_sum, _] = st.range_max(0, comp);
+        int current = (max_sum != INT32_MIN) ? max_sum + weights[i] : weights[i];
+        st.set(comp, current, i);
+    }
+    
+    auto [total, _] = st.range_max(0, cidx);
+    return total;
+}
+
+int main() {
+    vector<int> arr = {10, 22, 9, 33, 21, 50, 41, 60, 80};
+    
+    // Get LIS sequence
+    auto lis = find_lis_sequence(arr);
+    cout << "LIS sequence: ";
+    for (int num : lis) cout << num << " ";
+    cout << "\nLength: " << lis.size() << endl;
+    
+    // Weighted LIS example
+    vector<int> weights = {1, 1, 1, 1, 1, 1, 1, 1, 1}; // Same as normal LIS
+    cout << "Weighted LIS sum: " << weighted_lis(arr, weights) << endl;
+    
+    return 0;
+}
+
+===== merging_subsets.cpp =====
+#include <iostream>
+
+int main() {
+	int n = 5; // Set n to a desired value or read from input
+	for (int mask = 0; mask < (1 << n); mask++) {
+		for (int submask = mask; submask != 0; submask = (submask - 1) & mask) {
+			int subset = mask ^ submask;
+			// do whatever you need to do here
+		}
+	}
+	return 0;
+}
+
+===== SOS_DP_Insights.md =====
+# SOS DP and Prefix Sum Insights
+
+## 1. Problem Statement
+We are given an array `A` of size `2^N`. Each index `mask` corresponds to a subset of `{0,1,...,N-1}`. We want to compute:
+
+```
+F[mask] = sum(A[i] for i subset of mask)
+```
+
+This is also known as the **zeta transform over subsets**.
+
+---
+
+## 2. Naive and Better Solutions
+### Brute Force
+```cpp
+for (int mask = 0; mask < (1<<N); mask++) {
+    for (int i = 0; i < (1<<N); i++) {
+        if ((mask & i) == i)  // i is subset of mask
+            F[mask] += A[i];
+    }
+}
+```
+- Complexity: `O(4^N)`.
+
+### Subset Iteration
+```cpp
+for (int mask = 0; mask < (1<<N); mask++) {
+    for (int sub = mask; sub > 0; sub = (sub-1) & mask)
+        F[mask] += A[sub];
+    F[mask] += A[0]; // empty subset
+}
+```
+- Complexity: `O(3^N)`.
+
+---
+
+## 3. Optimized SOS DP
+Efficient version using **bit DP**:
+```cpp
+for (int mask = 0; mask < (1<<N); mask++)
+    F[mask] = A[mask];
+
+for (int bit = 0; bit < N; bit++) {
+    for (int mask = 0; mask < (1<<N); mask++) {
+        if (mask & (1<<bit))
+            F[mask] += F[mask ^ (1<<bit)];
+    }
+}
+```
+- Complexity: `O(N * 2^N)`.
+
+---
+
+## 4. Prefix Sum Analogy
+SOS DP is really just a **multi-dimensional prefix sum**.
+
+Example for N=2:
+```
+M[0][0] = A[00], M[0][1] = A[01]
+M[1][0] = A[10], M[1][1] = A[11]
+```
+
+2D prefix sums:
+```cpp
+// row-wise
+for (int i = 1; i < 2; i++)
+    for (int j = 0; j < 2; j++)
+        M[i][j] += M[i-1][j];
+
+// column-wise
+for (int i = 0; i < 2; i++)
+    for (int j = 1; j < 2; j++)
+        M[i][j] += M[i][j-1];
+```
+
+After this, `M[i][j]` = sum of all `A[x][y]` with `x <= i, y <= j`, which is exactly the subset relation.
+
+---
+
+## 5. Variants
+### Sum Over Supersets
+Instead of subsets:
+```cpp
+for (int i = 0; i < (1<<N); i++) F[i] = A[i];
+
+for (int bit = 0; bit < N; bit++) {
+    for (int mask = 0; mask < (1<<N); mask++) {
+        if ((mask & (1<<bit)) == 0) // different condition
+            F[mask] += F[mask ^ (1<<bit)];
+    }
+}
+```
+
+### Inverse Transform (MÃ¶bius)
+Recover A from F:
+```cpp
+for (int i = 0; i < (1<<N); i++) A[i] = F[i];
+
+for (int bit = 0; bit < N; bit++) {
+    for (int mask = 0; mask < (1<<N); mask++) {
+        if (mask & (1<<bit))
+            F[mask] -= F[mask ^ (1<<bit)];
+    }
+}
+```
+
+---
+
+## 6. General Multi-Dimensional Prefix Sums
+For arbitrary dimensions `[d1, d2, d3, ...]`, flatten indices with block sizes:
+
+```cpp
+int N = 4;
+vector<int> dims = {6, 9, 4, 20};
+vector<int> blocks(N+1);
+
+blocks[0] = 1;
+for (int i = 0; i < N; i++)
+    blocks[i+1] = blocks[i] * dims[i];
+
+for (int idx = 0; idx < blocks[N]; idx++)
+    F[idx] = A[idx];
+
+for (int d = 0; d < N; d++) {
+    for (int idx = 0; idx < blocks[N]; idx++) {
+        if ((idx / blocks[d]) % dims[d] != 0)
+            F[idx] += F[idx - blocks[d]];
+    }
+}
+```
+
+This is the generalization of SOS DP.
+
+---
+
+## 7. Key Takeaways
+- SOS DP is **prefix sums over N binary dimensions**.
+- Complexity improvement: `O(4^N)` â†’ `O(3^N)` â†’ `O(N*2^N)`.
+- Thinking in terms of prefix sums:
+  - Explains the implementation naturally.
+  - Makes supersets and inversion variants obvious.
+  - Extends to general multidimensional prefix sums.
+
+

@@ -1,0 +1,1553 @@
+﻿
+===== binomial_coefficients.cpp =====
+#include <iostream>
+using namespace std;
+using ll = long long;
+
+const int MOD = 1e9 + 7;
+const int MAXN = 2e6 + 20;
+
+ll fac[MAXN + 1];
+ll inv[MAXN + 1];
+
+// BeginCodeSnip{Counting functions}
+ll exp(ll x, ll n, ll m)
+{
+	x %= m;
+	ll res = 1;
+	while (n > 0)
+	{
+		if (n % 2 == 1)
+		{
+			res = res * x % m;
+		}
+		x = x * x % m;
+		n /= 2;
+	}
+	return res;
+}
+
+// Calculate modular inverse of a number using Fermat's Little Theorem
+// Works when MOD is prime
+ll inverse(ll a)
+{
+	return exp(a, MOD - 2, MOD);
+}
+
+// Calculate modular inverse using Extended Euclidean Algorithm
+// Works for any modulus (not necessarily prime)
+ll extgcd(ll a, ll b, ll &x, ll &y)
+{
+	if (b == 0)
+	{
+		x = 1;
+		y = 0;
+		return a;
+	}
+	ll x1, y1;
+	ll gcd = extgcd(b, a % b, x1, y1);
+	x = y1;
+	y = x1 - (a / b) * y1;
+	return gcd;
+}
+
+ll inverse_general(ll a, ll m)
+{
+	ll x, y;
+	ll gcd = extgcd(a, m, x, y);
+	if (gcd != 1)
+	{
+		return -1; // Inverse doesn't exist
+	}
+	return (x % m + m) % m;
+}
+
+void factorial()
+{
+	fac[0] = 1;
+	for (int i = 1; i <= MAXN; i++)
+	{
+		fac[i] = fac[i - 1] * i % MOD;
+	}
+}
+
+void inverses()
+{
+	inv[MAXN] = exp(fac[MAXN], MOD - 2, MOD);
+	for (int i = MAXN; i >= 1; i--)
+	{
+		inv[i - 1] = inv[i] * i % MOD;
+	}
+}
+
+ll choose(int n, int r)
+{
+	if(n < 0 or r < 0 or n < r) return 0;
+	return fac[n] * inv[r] % MOD * inv[n - r] % MOD;
+}
+ll add(ll a, ll b) { return (a + b) % MOD; }
+ll sub(ll a, ll b) { return (a - b + MOD) % MOD; }
+ll mul(ll a, ll b) { return (a * b) % MOD; }
+// factorial();
+// inverses();
+
+
+ll dp[35][35];
+ll ncr(int n, int r)
+{
+	if (n == r || r == 0)
+		return 1;
+	else if (r == 1)
+		return n;
+	else if (dp[n][r] != (-1))
+		return dp[n][r];
+	dp[n][r] = ncr(n - 1, r) + ncr(n - 1, r - 1);
+	return dp[n][r];
+}
+
+// without MOD
+long long comb(int n, int k)
+{
+	if(n < 0 or k < 0 or n < k){
+        return 0;
+    }
+	if (k > n - k)
+	{
+		k = n - k;
+	}
+	long long ret = 1;
+	for (int i = 0; i < k; i++)
+	{
+		// this is done instead of *= for divisibility issues
+		ret = (ret * (n - i)) / (i + 1);
+	}
+	return ret;
+}
+
+bool isBinomialOdd(long long n, long long r)
+{
+	// Check if n AND r == r
+	return (n & r) == r;
+}
+// EndCodeSnip
+
+int main()
+{
+	factorial();
+	inverses();
+	int n;
+	cin >> n;
+	for (int i = 0; i < n; i++)
+	{
+		int a, b;
+		cin >> a >> b;
+		cout << choose(a, b) << '\n';
+	}
+}
+
+//stars and bars = choose(n + k - 1, k - 1) 
+
+===== catalan.cpp =====
+
+/*
+======================  Catalan Numbers: handy formulas  ======================
+
+Definitions / Recurrences
+-------------------------
+(1) Catalan convolution (classic DP):
+C_0 = 1
+C_{n+1} = sum_{i=0}^{n} C_i * C_{n-i}
+C_n = (2 * (2 * n - 1) / (n + 1)) * C_n-1
+
+(2) Linear (ratio) recurrence:
+(n+2) * C_{n+1} = 2 * (2n+1) * C_n
+â‡” C_n = C_{n-1} * [ 2 * (2n - 1) / (n + 1) ],  for n >= 1
+
+Closed forms
+------------
+(3) Binomial / factorial forms:
+C_n = (1/(n+1)) * binom(2n, n)
+= binom(2n, n) - binom(2n, n+1)
+= (2n)! / ( n! * (n+1)! )
+
+(4) Product form:
+C_n = âˆ_{k=2}^{n} (n + k) / k
+(equivalently C_n = binom(2n, n) / (n+1))
+
+Generating function
+-------------------
+(5) C(x) = sum_{n>=0} C_n x^n = (1 - sqrt(1 - 4x)) / (2x)
+
+Asymptotics
+-----------
+(6) C_n ~ 4^n / ( n^{3/2} * sqrt(pi) )
+
+First values
+------------
+(7) 1, 1, 2, 5, 14, 42, 132, 429, 1430, ...
+
+Mod notes (for coding)
+----------------------
+â€¢ DP O(n^2) via (1) works well for moderate n (like this function).
+â€¢ Faster O(n) per term via (2) needs modular inverses of (n+1) under prime MOD.
+â€¢ For (3)/(4) under MOD, use factorials + inv factorials, or multiply with modular inverses.
+===============================================================================
+*/
+const int MOD = 1e9+7;
+const int MAX = 1000;
+int catalan[MAX+1];
+
+void init(int n) {
+    catalan[0] = catalan[1] = 1;
+    for (int i = 2; i <= n; i++) {
+        catalan[i] = 0;
+        for (int j = 0; j < i; j++) {
+            catalan[i] = (catalan[i] + 1LL * catalan[j] * catalan[i-j-1]) % MOD;
+        }
+    }
+}
+
+
+===== CRT_ncr.cpp =====
+#include <bits/stdc++.h>
+using namespace std;
+
+using T = __int128;
+using ll = long long;
+
+T extended_euclid(T a, T b, T &x, T &y) {
+  T xx = y = 0;
+  T yy = x = 1;
+  while (b) {
+    T q = a / b;
+    T t = b; b = a % b; a = t;
+    t = xx; xx = x - q * xx; x = t;
+    t = yy; yy = y - q * yy; y = t;
+  }
+  return a;
+}
+
+pair<T, T> CRT(T a1, T m1, T a2, T m2) {
+  T p, q;
+  T g = extended_euclid(m1, m2, p, q);        
+  if ((a1 % g + g) % g != (a2 % g + g) % g) return {0, -1};
+  T m = m1 / g * m2;                          
+  p = (p % m + m) % m;
+  q = (q % m + m) % m;
+  T res = (p * a2 % m * (m1 / g) % m + q * a1 % m * (m2 / g) % m) % m;
+  if (res < 0) res += m;
+  return {res, m};
+}
+
+long long modpow(long long a, long long e, long long mod) {
+  long long r = 1 % mod;
+  a %= mod; if (a < 0) a += mod;
+  while (e) {
+    if (e & 1) r = (long long)((__int128)r * a % mod);
+    a = (long long)((__int128)a * a % mod);
+    e >>= 1;
+  }
+  return r;
+}
+
+struct Tables {
+  vector<int> fact, invfact;
+};
+unordered_map<int, Tables> tbl;
+
+const Tables& get_tables(int p) {
+  auto it = tbl.find(p);
+  if (it != tbl.end()) return it->second;
+  Tables T;
+  T.fact.assign(p, 1);
+  T.invfact.assign(p, 1);
+  for (int i = 1; i < p; ++i) T.fact[i] = (int)(1LL * T.fact[i-1] * i % p);
+  T.invfact[p-1] = (int)modpow(T.fact[p-1], p-2, p);
+  for (int i = p-2; i >= 0; --i) T.invfact[i] = (int)(1LL * T.invfact[i+1] * (i+1) % p);
+  auto [it2, _] = tbl.emplace(p, move(T));
+  return it2->second;
+}
+
+int nCk_small_mod_p(int n, int k, int p) {
+  if (k < 0 || k > n) return 0;
+  const auto& T = get_tables(p);
+  int res = T.fact[n];
+  res = (int)(1LL * res * T.invfact[k] % p);
+  res = (int)(1LL * res * T.invfact[n - k] % p);
+  return res;
+}
+
+int nCk_mod_prime_lucas(long long n, long long k, int p) {
+  if (k < 0 || k > n) return 0;
+  int ans = 1;
+  while (n > 0 || k > 0) {
+    int ni = (int)(n % p);
+    int ki = (int)(k % p);
+    if (ki > ni) return 0;
+    ans = (int)(1LL * ans * nCk_small_mod_p(ni, ki, p) % p);
+    n /= p; k /= p;
+  }
+  return ans;
+}
+
+vector<int> small_primes() { return {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47}; }
+
+vector<int> factor_squarefree_M(long long M) {
+  vector<int> ps;
+  for (int p : small_primes()) {
+    if (M % p == 0) {
+      ps.push_back(p);
+      M /= p;
+      while (M % p == 0) M /= p;
+    }
+  }
+  return ps;
+}
+
+int main() {
+  ios::sync_with_stdio(false);
+  cin.tie(nullptr);
+
+  int TC; 
+  if (!(cin >> TC)) return 0;
+  while (TC--) {
+    long long N, R, M;
+    cin >> N >> R >> M;
+
+    if (M == 1) { cout << 0 << '\n'; continue; }
+    if (R < 0 || R > N) { cout << 0 << '\n'; continue; }
+
+    vector<int> primes = factor_squarefree_M(M);
+
+    pair<T,T> cur = {0, 1}; 
+    for (int p : primes) {
+      int r = nCk_mod_prime_lucas(N, R, p);
+      auto nxt = CRT(cur.first, cur.second, (T)r, (T)p);
+      if (nxt.second == -1) { 
+        cout << 0 << '\n';
+        goto next_case;
+      }
+      cur = nxt;
+    }
+
+    cout << (long long)(cur.first % M) << '\n';
+  next_case:
+    (void)0;
+  }
+  return 0;
+}
+
+
+===== dearrangement.cpp =====
+#include <iostream>
+#include <bits/stdc++.h>
+// #include <sys/resource.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+using namespace std;
+// using namespace chrono;
+using namespace __gnu_pbds;
+template <typename T>
+using oset = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+template <typename T>
+using omset = tree<T, null_type, less_equal<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+template <typename T, typename R>
+using o_map = tree<T, R, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+// Pragmas
+#pragma GCC optimize("O3,unroll-loops")
+// #ifndef LOCAL_PROJECT
+// #pragma GCC target("avx2")
+// #endif
+// #pragma GCC optimize("Ofast")
+
+// Speed
+inline void FastIO()
+{
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    cout.tie(NULL);
+}
+
+// Aliases
+using ll = long long;
+using lld = long double;
+using ull = unsigned long long;
+
+// Constants
+const lld pi = 3.141592653589793238;
+const ll INF = LONG_LONG_MAX;
+const ll mod = 1e9 + 7;
+
+// TypeDEf
+typedef pair<ll, ll> pll;
+typedef vector<ll> vll;
+typedef vector<pll> vpll;
+typedef vector<string> vs;
+typedef unordered_map<ll, ll> umll;
+typedef map<ll, ll> mll;
+
+// Macros
+#define ff first
+#define ss second
+#define pb push_back
+#define mp make_pair
+#define fl(i, n) for (ll i = 0; i < n; i++)
+#define fls(i, m, n) for (ll i = m; i <= n; i++)
+#define rl(i, m, n) for (ll i = n; i >= m; i--)
+#define py cout << "Yes\n";
+#define pm cout << "-1\n";
+#define pn cout << "No\n";
+#define vr(v) v.begin(), v.end()
+#define rv(v) v.rbegin(), v.rend()
+#define edl '\n'
+#define len(v) v.size()
+#define nl cout << edl;
+
+// Debug
+void __print(int x) { cerr << x; }
+void __print(long x) { cerr << x; }
+void __print(long long x) { cerr << x; }
+void __print(unsigned x) { cerr << x; }
+void __print(unsigned long x) { cerr << x; }
+void __print(unsigned long long x) { cerr << x; }
+void __print(float x) { cerr << x; }
+void __print(double x) { cerr << x; }
+void __print(long double x) { cerr << x; }
+void __print(char x) { cerr << '\'' << x << '\''; }
+void __print(const char *x) { cerr << '"' << x << '"'; }
+void __print(const string &x) { cerr << '"' << x << '"'; }
+void __print(bool x) { cerr << (x ? "true" : "false"); }
+
+template <typename T, typename V>
+void __print(const pair<T, V> &x)
+{
+    cerr << '{';
+    __print(x.first);
+    cerr << ',';
+    __print(x.second);
+    cerr << '}';
+}
+template <typename T>
+void __print(const T &x)
+{
+    int f = 0;
+    cerr << '{';
+    for (auto &i : x)
+        cerr << (f++ ? "," : ""), __print(i);
+    cerr << "}";
+}
+void _print() { cerr << "]\n"; }
+template <typename T, typename... V>
+void _print(T t, V... v)
+{
+    __print(t);
+    if (sizeof...(v))
+        cerr << ", ";
+    _print(v...);
+}
+#ifndef ONLINE_JUDGE
+#define debug(x...)               \
+    cerr << "[" << #x << "] = ["; \
+    _print(x)
+#else
+#define debug(x...)
+#endif
+
+// Operator overloads
+template <typename T1, typename T2> // cin >> pair<T1, T2>
+istream &operator>>(istream &istream, pair<T1, T2> &p)
+{
+    return (istream >> p.first >> p.second);
+}
+template <typename T> // cin >> vector<T>
+istream &operator>>(istream &istream, vector<T> &v)
+{
+    for (auto &it : v)
+        cin >> it;
+    return istream;
+}
+template <typename T1, typename T2> // cout << pair<T1, T2>
+ostream &operator<<(ostream &ostream, const pair<T1, T2> &p)
+{
+    return (ostream << p.first << " " << p.second);
+}
+template <typename T> // cout << vector<T>
+ostream &operator<<(ostream &ostream, const vector<T> &c)
+{
+    for (auto &it : c)
+        cout << it << " ";
+    return ostream;
+}
+
+// Utility functions
+#define print(x) cout << x << '\n'
+
+template <typename T>
+ll sumvec(vector<T> v)
+{
+    ll n = v.size();
+    ll s = 0;
+    fl(i, n) s += v[i];
+    return s;
+}
+
+long long rng()
+{
+    static std::mt19937 gen(
+        std::chrono::steady_clock::now().time_since_epoch().count());
+    return std::uniform_int_distribution<long long>(0, INT64_MAX)(gen);
+}
+
+void preSolve()
+{
+    // rng = mt19937(chrono::steady_clock::now().time_since_epoch().count());
+    // allocateStackMax();
+}
+
+//!n=(nâˆ’1)(!(nâˆ’1)+!(nâˆ’2))
+//!n=n!âˆ‘(k = 0 to n) â€‹k!(âˆ’1)kâ€‹
+//!n=nâ‹…!(nâˆ’1)+(âˆ’1)n
+// Code
+void solve()
+{
+
+    ll n;
+    cin >> n;
+    ll m;
+    cin >> m;
+    
+    vll dp(n + 1);
+    dp[0] = 1;
+    dp[1] = 0;
+    fls(i, 2, n){
+        dp[i] = ((i - 1) * ((dp[i - 1] + dp[i - 2]) % m)) % m;
+    }
+    dp.erase(dp.begin());
+    print(dp);
+}
+// Main
+signed main()
+{
+    // #ifndef ONLINE_JUDGE
+    //     freopen("Error.txt", "w", stderr);
+    // #endif
+    FastIO();
+    preSolve();
+    ll t = 1;
+    // cin >> t;
+    fl(i, t)
+    {
+        solve();
+    }
+    // solve();
+    // fl(i,t) //Kickstart
+    // {
+    //     cout<<"Case #"<<i+1<<": ";
+    //     solve();
+    //     cout<<"\n";
+    // }
+    return 0;
+}
+// End
+
+/*
+#include <atcoder/modint>
+#include <bits/stdc++.h>
+
+using namespace std;
+using mint = atcoder::modint;
+
+int main() {
+	int n, m;
+	cin >> n >> m;
+	mint::set_mod(m);
+
+	mint c = 1;
+	for (int i = 1; i <= n; i++) {
+		c = (c * i) + (i % 2 == 1 ? -1 : 1);
+		cout << c.val() << ' ';
+	}
+	cout << endl;
+}
+*/
+
+===== Lucas_theorem_any_mod.cpp =====
+#include <iostream>
+#include <bits/stdc++.h>
+// #include <sys/resource.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+using namespace std;
+// using namespace chrono;
+using namespace __gnu_pbds;
+template <typename T>
+using oset = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+template <typename T>
+using omset = tree<T, null_type, less_equal<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+template <typename T, typename R>
+using o_map = tree<T, R, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+// Pragmas
+#pragma GCC optimize("O3,unroll-loops")
+// #ifndef LOCAL_PROJECT
+// #pragma GCC target("avx2")
+// #endif
+// #pragma GCC optimize("Ofast")
+
+// Speed
+inline void FastIO()
+{
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    cout.tie(NULL);
+}
+
+// Aliases
+using ll = long long;
+using lld = long double;
+using ull = unsigned long long;
+
+// Constants
+const lld pi = 3.141592653589793238;
+const ll INF = LONG_LONG_MAX;
+// const ll mod = 1e9 + 7;
+
+// TypeDEf
+typedef pair<ll, ll> pll;
+typedef vector<ll> vll;
+typedef vector<pll> vpll;
+typedef vector<string> vs;
+typedef unordered_map<ll, ll> umll;
+typedef map<ll, ll> mll;
+
+// Macros
+#define ff first
+#define ss second
+#define pb push_back
+#define mp make_pair
+#define fl(i, n) for (ll i = 0; i < n; i++)
+#define fls(i, m, n) for (ll i = m; i <= n; i++)
+#define rl(i, m, n) for (ll i = n; i >= m; i--)
+#define py cout << "Yes\n";
+#define pm cout << "-1\n";
+#define pn cout << "No\n";
+#define vr(v) v.begin(), v.end()
+#define rv(v) v.rbegin(), v.rend()
+#define edl '\n'
+#define len(v) v.size()
+#define nl cout << edl;
+
+// Debug
+void __print(int x) { cerr << x; }
+void __print(long x) { cerr << x; }
+void __print(long long x) { cerr << x; }
+void __print(unsigned x) { cerr << x; }
+void __print(unsigned long x) { cerr << x; }
+void __print(unsigned long long x) { cerr << x; }
+void __print(float x) { cerr << x; }
+void __print(double x) { cerr << x; }
+void __print(long double x) { cerr << x; }
+void __print(char x) { cerr << '\'' << x << '\''; }
+void __print(const char *x) { cerr << '"' << x << '"'; }
+void __print(const string &x) { cerr << '"' << x << '"'; }
+void __print(bool x) { cerr << (x ? "true" : "false"); }
+
+template <typename T, typename V>
+void __print(const pair<T, V> &x)
+{
+    cerr << '{';
+    __print(x.first);
+    cerr << ',';
+    __print(x.second);
+    cerr << '}';
+}
+template <typename T>
+void __print(const T &x)
+{
+    int f = 0;
+    cerr << '{';
+    for (auto &i : x)
+        cerr << (f++ ? "," : ""), __print(i);
+    cerr << "}";
+}
+void _print() { cerr << "]\n"; }
+template <typename T, typename... V>
+void _print(T t, V... v)
+{
+    __print(t);
+    if (sizeof...(v))
+        cerr << ", ";
+    _print(v...);
+}
+#ifndef ONLINE_JUDGE
+#define debug(x...)               \
+    cerr << "[" << #x << "] = ["; \
+    _print(x)
+#else
+#define debug(x...)
+#endif
+
+// Operator overloads
+template <typename T1, typename T2> // cin >> pair<T1, T2>
+istream &operator>>(istream &istream, pair<T1, T2> &p)
+{
+    return (istream >> p.first >> p.second);
+}
+template <typename T> // cin >> vector<T>
+istream &operator>>(istream &istream, vector<T> &v)
+{
+    for (auto &it : v)
+        cin >> it;
+    return istream;
+}
+template <typename T1, typename T2> // cout << pair<T1, T2>
+ostream &operator<<(ostream &ostream, const pair<T1, T2> &p)
+{
+    return (ostream << p.first << " " << p.second);
+}
+template <typename T> // cout << vector<T>
+ostream &operator<<(ostream &ostream, const vector<T> &c)
+{
+    for (auto &it : c)
+        cout << it << " ";
+    return ostream;
+}
+
+// Utility functions
+#define print(x) cout << x << '\n'
+
+template <typename T>
+ll sumvec(vector<T> v)
+{
+    ll n = v.size();
+    ll s = 0;
+    fl(i, n) s += v[i];
+    return s;
+}
+
+long long rng()
+{
+    static std::mt19937 gen(
+        std::chrono::steady_clock::now().time_since_epoch().count());
+    return std::uniform_int_distribution<long long>(0, INT64_MAX)(gen);
+}
+
+void preSolve()
+{
+    // rng = mt19937(chrono::steady_clock::now().time_since_epoch().count());
+    // allocateStackMax();
+}
+
+// ... keep all your includes/types ...
+
+const int N = 1e6 + 9;
+using ll = long long;
+ll mod ;
+
+int power(long long n, long long k, const int mod) {
+  int ans = 1 % mod; n %= mod; if (n < 0) n += mod;
+  while (k) {
+    if (k & 1) ans = (long long) ans * n % mod;
+    n = (long long) n * n % mod;
+    k >>= 1;
+  }
+  return ans;
+}
+ll extended_euclid(ll a, ll b, ll &x, ll &y) {
+  if (b == 0) {
+    x = 1; y = 0;
+    return a;
+  }
+  ll x1, y1;
+  ll d = extended_euclid(b, a % b, x1, y1);
+  x = y1;
+  y = x1 - y1 * (a / b);
+  return d;
+}
+ll inverse(ll a, ll m) {
+  ll x, y;
+  ll g = extended_euclid(a, m, x, y);
+  if (g != 1) return -1;
+  return (x % m + m) % m;
+}
+// returns n! % mod without taking all the multiple factors of p into account that appear in the factorial
+// mod = multiple of p
+// O(mod) * log(n)
+int factmod(ll n, int p, const int mod) {
+  vector<int> f(mod + 1);
+  f[0] = 1 % mod;
+  for (int i = 1; i <= mod; i++) {
+    if (i % p) f[i] = 1LL * f[i - 1] * i % mod;
+    else f[i] = f[i - 1];
+  }
+  int ans = 1 % mod;
+  while (n > 1) {
+    ans = 1LL * ans * f[n % mod] % mod;
+    ans = 1LL * ans * power(f[mod], n / mod, mod) % mod;
+    n /= p;
+  }
+  return ans; 
+}
+ll multiplicity(ll n, int p) {
+  ll ans = 0;
+  while (n) {
+    n /= p;
+    ans += n;
+  }
+  return ans;
+}
+// C(n, r) modulo p^k
+// O(p^k log n)
+int ncr(ll n, ll r, int p, int k) {
+  if (n < r or r < 0) return 0;
+  int mod = 1;
+  for (int i = 0; i < k; i++) {
+    mod *= p;
+  }
+  ll t = multiplicity(n, p) - multiplicity(r, p) - multiplicity(n - r, p);
+  if (t >= k) return 0;
+  int ans = 1LL * factmod(n, p, mod) * inverse(factmod(r, p, mod), mod) % mod * inverse(factmod(n - r, p, mod), mod) % mod;
+  ans = 1LL * ans * power(p, t, mod) % mod;
+  return ans;
+}
+// finds x such that x % m1 = a1, x % m2 = a2. m1 and m2 may not be coprime
+// here, x is unique modulo m = lcm(m1, m2). returns (x, m). on failure, m = -1.
+pair<ll, ll> CRT(ll a1, ll m1, ll a2, ll m2) {
+  ll p, q;
+  ll g = extended_euclid(m1, m2, p, q);
+  if (a1 % g != a2 % g) return make_pair(0, -1);
+  ll m = m1 / g * m2;
+  p = (p % m + m) % m;
+  q = (q % m + m) % m;
+  return make_pair((p * a2 % m * (m1 / g) % m + q * a1 % m * (m2 / g) % m) %  m, m);
+}
+int spf[N];
+vector<int> primes;
+void sieve() {
+  for(int i = 2; i < N; i++) {
+    if (spf[i] == 0) spf[i] = i, primes.push_back(i);
+    int sz = primes.size();
+    for (int j = 0; j < sz && i * primes[j] < N && primes[j] <= spf[i]; j++) {
+      spf[i * primes[j]] = primes[j];
+    }
+  }
+}
+// O(m log(n) log(m))
+int ncr(ll n, ll r, int m) {
+  if (n < r or r < 0) return 0;
+  pair<ll, ll> ans({0, 1});
+  while (m > 1) {
+    int p = spf[m], k = 0, cur = 1;
+    while (m % p == 0) {
+      m /= p; cur *= p;
+      ++k;
+    }
+    ans = CRT(ans.first, ans.second, ncr(n, r, p, k), cur);
+  }
+  return ans.first;
+}
+
+ll lucas(long long n, long long r) {
+    if (r > n) return 0;
+    if (n < mod) return ncr(n, r, mod);
+    return (lucas(n / mod, r / mod) * lucas(n % mod, r % mod)) % mod;
+}
+
+void solve() {
+    long long n, r, p;
+    cin >> n >> r >> p;
+    mod = (int)p;
+    print(lucas(n, r));
+}
+// Main
+signed main()
+{
+    // #ifndef ONLINE_JUDGE
+    //     freopen("Error.txt", "w", stderr);
+    // #endif
+    FastIO();
+    preSolve();
+    sieve();
+    ll t = 1;
+    cin >> t;
+    fl(i, t)
+    {
+        solve();
+    }
+    // solve();
+    // fl(i,t) //Kickstart
+    // {
+    //     cout<<"Case #"<<i+1<<": ";
+    //     solve();
+    //     cout<<"\n";
+    // }
+    return 0;
+}
+// End
+
+===== Lucas_theorem_prime_mod.cpp =====
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+
+static int MOD; // prime
+vector<int> fac, inv; // size MOD, indices 0..MOD-1
+
+ll modpow(ll a, ll e) {
+    ll r = 1 % MOD;
+    a %= MOD;
+    if (a < 0) a += MOD;
+    while (e) {
+        if (e & 1) r = (r * a) % MOD;
+        a = (a * a) % MOD;
+        e >>= 1;
+    }
+    return r;
+}
+
+void build_fact_inv() {
+    fac.assign(MOD, 1);
+    for (int i = 1; i < MOD; ++i) fac[i] = (ll)fac[i-1] * i % MOD;
+    inv.assign(MOD, 1);
+    inv[MOD-1] = (int)modpow(fac[MOD-1], MOD - 2);
+    for (int i = MOD-1; i >= 1; --i) inv[i-1] = (ll)inv[i] * i % MOD;
+}
+
+inline int nCr_precomp(int n, int r) {
+    if (r < 0 || r > n) return 0;
+    return (ll)fac[n] * inv[r] % MOD * inv[n - r] % MOD;
+}
+
+// multiplicative nCr for a single digit (n, r < MOD), no precompute required
+int nCr_small(int n, int r) {
+    if (r < 0 || r > n) return 0;
+    r = min(r, n - r);
+    ll num = 1, den = 1;
+    for (int i = 1; i <= r; ++i) {
+        num = num * (n - r + i) % MOD;
+        den = den * i % MOD;
+    }
+    return (int)(num * modpow(den, MOD - 2) % MOD);
+}
+
+// Lucas using either precomputed factorials or multiplicative per digit
+int lucas_ll(ll n, ll r, bool have_precomp) {
+    if (r < 0 || r > n) return 0;
+    int res = 1;
+    while (n > 0 || r > 0) {
+        int ni = (int)(n % MOD);
+        int ri = (int)(r % MOD);
+        if (ri > ni) return 0;
+        int term = have_precomp ? nCr_precomp(ni, ri) : nCr_small(ni, ri);
+        res = (ll)res * term % MOD;       // <-- MOD taken here
+        n /= MOD;
+        r /= MOD;
+    }
+    return res;
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int T; 
+    if (!(cin >> T)) return 0;
+    while (T--) {
+        long long n, r, p;
+        cin >> n >> r >> p;
+        MOD = (int)p;
+
+        // If MOD is reasonably small, precompute up to MOD-1; else use multiplicative per digit
+        bool can_precomp = (MOD > 1) && (MOD <= 2000000); // tune threshold if you like
+        if (can_precomp) build_fact_inv();
+
+        cout << lucas_ll(n, r, can_precomp) << '\n';
+    }
+    return 0;
+}
+
+
+===== ncr_modulo_any_mod.cpp =====
+#include<bits/stdc++.h>
+using namespace std;
+
+const int N = 1e6 + 9;
+using ll = long long;
+
+int power(long long n, long long k, const int mod) {
+  int ans = 1 % mod; n %= mod; if (n < 0) n += mod;
+  while (k) {
+    if (k & 1) ans = (long long) ans * n % mod;
+    n = (long long) n * n % mod;
+    k >>= 1;
+  }
+  return ans;
+}
+ll extended_euclid(ll a, ll b, ll &x, ll &y) {
+  if (b == 0) {
+    x = 1; y = 0;
+    return a;
+  }
+  ll x1, y1;
+  ll d = extended_euclid(b, a % b, x1, y1);
+  x = y1;
+  y = x1 - y1 * (a / b);
+  return d;
+}
+ll inverse(ll a, ll m) {
+  ll x, y;
+  ll g = extended_euclid(a, m, x, y);
+  if (g != 1) return -1;
+  return (x % m + m) % m;
+}
+// returns n! % mod without taking all the multiple factors of p into account that appear in the factorial
+// mod = multiple of p
+// O(mod) * log(n)
+int factmod(ll n, int p, const int mod) {
+  vector<int> f(mod + 1);
+  f[0] = 1 % mod;
+  for (int i = 1; i <= mod; i++) {
+    if (i % p) f[i] = 1LL * f[i - 1] * i % mod;
+    else f[i] = f[i - 1];
+  }
+  int ans = 1 % mod;
+  while (n > 1) {
+    ans = 1LL * ans * f[n % mod] % mod;
+    ans = 1LL * ans * power(f[mod], n / mod, mod) % mod;
+    n /= p;
+  }
+  return ans; 
+}
+ll multiplicity(ll n, int p) {
+  ll ans = 0;
+  while (n) {
+    n /= p;
+    ans += n;
+  }
+  return ans;
+}
+// C(n, r) modulo p^k
+// O(p^k log n)
+int ncr(ll n, ll r, int p, int k) {
+  if (n < r or r < 0) return 0;
+  int mod = 1;
+  for (int i = 0; i < k; i++) {
+    mod *= p;
+  }
+  ll t = multiplicity(n, p) - multiplicity(r, p) - multiplicity(n - r, p);
+  if (t >= k) return 0;
+  int ans = 1LL * factmod(n, p, mod) * inverse(factmod(r, p, mod), mod) % mod * inverse(factmod(n - r, p, mod), mod) % mod;
+  ans = 1LL * ans * power(p, t, mod) % mod;
+  return ans;
+}
+// finds x such that x % m1 = a1, x % m2 = a2. m1 and m2 may not be coprime
+// here, x is unique modulo m = lcm(m1, m2). returns (x, m). on failure, m = -1.
+pair<ll, ll> CRT(ll a1, ll m1, ll a2, ll m2) {
+  ll p, q;
+  ll g = extended_euclid(m1, m2, p, q);
+  if (a1 % g != a2 % g) return make_pair(0, -1);
+  ll m = m1 / g * m2;
+  p = (p % m + m) % m;
+  q = (q % m + m) % m;
+  return make_pair((p * a2 % m * (m1 / g) % m + q * a1 % m * (m2 / g) % m) %  m, m);
+}
+int spf[N];
+vector<int> primes;
+void sieve() {
+  for(int i = 2; i < N; i++) {
+    if (spf[i] == 0) spf[i] = i, primes.push_back(i);
+    int sz = primes.size();
+    for (int j = 0; j < sz && i * primes[j] < N && primes[j] <= spf[i]; j++) {
+      spf[i * primes[j]] = primes[j];
+    }
+  }
+}
+// O(m log(n) log(m))
+int ncr(ll n, ll r, int m) {
+  if (n < r or r < 0) return 0;
+  pair<ll, ll> ans({0, 1});
+  while (m > 1) {
+    int p = spf[m], k = 0, cur = 1;
+    while (m % p == 0) {
+      m /= p; cur *= p;
+      ++k;
+    }
+    ans = CRT(ans.first, ans.second, ncr(n, r, p, k), cur);
+  }
+  return ans.first;
+}
+int32_t main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  sieve();
+  int t; cin >> t;
+  while (t--) {
+    ll n, k; cin >> n >> k;
+    int m; cin >> m;
+    ll r = (n + k - 1) / k;
+    cout << r << ' ' << ncr((k - n % k) % k + r - 1, r - 1, m) << '\n';
+  }
+  return 0;
+}
+// https://www.codechef.com/problems/SANDWICH
+// https://cp-algorithms.com/combinatorics/binomial-coefficients.html#mod-prime-pow
+
+===== stirling.txt =====
+Alright, letâ€™s carefully build up your understanding of **Stirling numbers** from scratch.
+There are actually **two kinds** of Stirling numbers, and thatâ€™s where a lot of confusion comes from. Letâ€™s go step by step.
+
+---
+
+# 1. Stirling Numbers of the **Second Kind** (Partition counts)
+
+ðŸ‘‰ Denoted by $S(n, k)$.
+Meaning: **The number of ways to partition a set of $n$ elements into exactly $k$ non-empty unlabeled subsets.**
+
+Example:
+
+* $S(3,2) = 3$. Why? For set $\{1,2,3\}$, partitions into 2 parts are:
+
+  * $\{1,2\}, \{3\}$
+  * $\{1,3\}, \{2\}$
+  * $\{2,3\}, \{1\}$
+
+### Formula (Recurrence):
+
+$$
+S(n,k) = k \cdot S(n-1, k) + S(n-1, k-1)
+$$
+
+**Explanation of recurrence**:
+
+* Put the $n$-th element into one of the existing $k$ subsets â†’ $k \cdot S(n-1,k)$.
+* Or start a new subset containing only the $n$-th element â†’ $S(n-1,k-1)$.
+
+### Explicit Formula:
+
+$$
+S(n,k) = \frac{1}{k!} \sum_{i=0}^{k} (-1)^i \binom{k}{i} (k-i)^n
+$$
+
+---
+
+# 2. Stirling Numbers of the **First Kind** (Permutation cycle counts)
+
+ðŸ‘‰ Denoted by $c(n, k)$ or $\left[ {n \atop k} \right]$.
+Meaning: **The number of permutations of $n$ elements with exactly $k$ disjoint cycles.**
+
+Example:
+
+* $c(3,1) = 2$. Permutations of $\{1,2,3\}$ with 1 cycle are the 3-cycles:
+
+  * (1 2 3), (1 3 2).
+* $c(3,2) = 3$. Permutations with 2 cycles:
+
+  * (1)(2 3), (2)(1 3), (3)(1 2).
+
+### Formula (Recurrence):
+
+$$
+c(n,k) = (n-1) \cdot c(n-1, k) + c(n-1, k-1)
+$$
+
+**Explanation**:
+
+* Insert the new element into one of the existing $(n-1)$ cycles â†’ $(n-1)\cdot c(n-1,k)$.
+* Or start a new cycle with just this element â†’ $c(n-1, k-1)$.
+
+---
+
+# 3. Relation to other combinatorics
+
+* **Second kind â†’ partitions** (connects to **Bell numbers**: $B_n = \sum_{k=1}^n S(n,k)$).
+* **First kind â†’ cycles in permutations** (connects to **factorials**: $n! = \sum_{k=1}^n c(n,k)$).
+
+There are also **signed Stirling numbers of the first kind**:
+
+$$
+s(n,k) = (-1)^{n-k} c(n,k)
+$$
+
+---
+
+# 4. Quick Table
+
+For intuition, here are the first few:
+
+### Stirling numbers of the 2nd kind $S(n,k)$
+
+| n\k | 1 | 2 | 3 | 4 |
+| --- | - | - | - | - |
+| 1   | 1 |   |   |   |
+| 2   | 1 | 1 |   |   |
+| 3   | 1 | 3 | 1 |   |
+| 4   | 1 | 7 | 6 | 1 |
+
+### Stirling numbers of the 1st kind $c(n,k)$
+
+| n\k | 1 | 2  | 3 | 4 |
+| --- | - | -- | - | - |
+| 1   | 1 |    |   |   |
+| 2   | 1 | 1  |   |   |
+| 3   | 2 | 3  | 1 |   |
+| 4   | 6 | 11 | 6 | 1 |
+
+---
+
+# 5. Where they show up
+
+* Counting partitions (second kind) â†’ dynamic programming, probability, Bell numbers, distribution problems.
+* Counting cycles (first kind) â†’ analyzing permutations, polynomial expansions, random cycle structure.
+
+---
+
+âœ… So the main difference:
+
+* **Second kind**: "How many ways to split elements into unlabeled groups?"
+* **First kind**: "How many permutations have exactly $k$ cycles?"
+
+---
+
+Do you want me to **show you some worked-out examples with the recurrence step by step** (like computing $S(5,3)$ and $c(5,2)$) so the mechanics are 100% clear?
+
+
+
+
+
+
+
+Perfect! The **MÃ¶bius function** and **MÃ¶bius inversion** are core number theory tools â€” they look abstract at first, but once you see the mechanics and examples, they click. Letâ€™s go step by step.
+
+---
+
+# 1. MÃ¶bius Function $\mu(n)$
+
+The MÃ¶bius function is defined for integers $n \geq 1$:
+
+$$
+\mu(n) =
+\begin{cases}
+1 & \text{if } n=1 \\
+0 & \text{if } n \text{ is divisible by a square prime (like } p^2 \mid n \text{)} \\
+(-1)^k & \text{if } n \text{ is a product of } k \text{ distinct primes}
+\end{cases}
+$$
+
+---
+
+### Examples:
+
+* $\mu(1) = 1$
+* $\mu(2) = -1$ (one prime factor)
+* $\mu(3) = -1$ (one prime factor)
+* $\mu(6) = +1$ (two distinct primes $2\cdot 3$)
+* $\mu(12) = 0$ (since $12 = 2^2 \cdot 3$ has a square factor)
+
+---
+
+# 2. Why is MÃ¶bius function important?
+
+It comes from the **Inclusionâ€“Exclusion principle** at the number theory level.
+It lets us â€œinvertâ€ divisor sums.
+
+Thereâ€™s a key identity:
+
+$$
+\sum_{d \mid n} \mu(d) =
+\begin{cases}
+1 & \text{if } n=1 \\
+0 & \text{if } n > 1
+\end{cases}
+$$
+
+This is the arithmetic form of inclusionâ€“exclusion.
+
+---
+
+# 3. MÃ¶bius Inversion Formula
+
+Suppose you have **two functions on positive integers** $f(n)$ and $g(n)$ related by:
+
+$$
+g(n) = \sum_{d \mid n} f(d) \quad \text{(Dirichlet convolution with 1)}
+$$
+
+That is, $g(n)$ is the sum of $f(d)$ over all divisors $d$ of $n$.
+
+Then MÃ¶bius inversion says:
+
+$$
+f(n) = \sum_{d \mid n} \mu(d) \, g\!\left(\tfrac{n}{d}\right)
+$$
+
+This allows you to â€œinvertâ€ divisor-sums.
+
+---
+
+### Example 1: Eulerâ€™s Totient $\varphi(n)$
+
+Itâ€™s known:
+
+$$
+n = \sum_{d \mid n} \varphi(d)
+$$
+
+Apply MÃ¶bius inversion:
+
+$$
+\varphi(n) = \sum_{d \mid n} \mu(d) \cdot \frac{n}{d}
+$$
+
+This is a standard formula for totients.
+
+---
+
+### Example 2: Coprime Pairs Count
+
+Let:
+
+* $f(n)$ = number of integers $\leq N$ that are \*\*exactly divisible by $n$}.
+* $g(n)$ = number of integers $\leq N$ that are divisible by $n$.
+
+Clearly:
+
+$$
+g(n) = \sum_{d \mid n} f(d)
+$$
+
+So by MÃ¶bius inversion:
+
+$$
+f(n) = \sum_{d \mid n} \mu(d) g\!\left(\tfrac{n}{d}\right)
+$$
+
+This formula is often used in competitive programming for counting gcd-related things.
+
+---
+
+# 4. Connection with Dirichlet Convolution
+
+In number theory we define convolution:
+
+$$
+(f * g)(n) = \sum_{d \mid n} f(d) g\!\left(\tfrac{n}{d}\right)
+$$
+
+Key facts:
+
+* $1(n) = 1$ for all $n$.
+* MÃ¶bius $\mu$ is the **inverse of 1** under convolution.
+  So:
+
+$$
+(f * 1)(n) = g(n) \quad \iff \quad f(n) = (g * \mu)(n)
+$$
+
+Thatâ€™s the algebraic heart of MÃ¶bius inversion.
+
+---
+
+# 5. Practical Uses in CP
+
+* Counting **coprime pairs**:
+  $\sum_{i=1}^n \sum_{j=1}^m [\gcd(i,j)=1]$
+  solved using MÃ¶bius function.
+* Multiplicative function formulas (Eulerâ€™s totient, Jordanâ€™s totient).
+* Polynomial / subset inversions (generalized MÃ¶bius inversion on lattices, like subset DP).
+* Problems that involve â€œexactly kâ€ vs â€œat least kâ€ style divisor counts.
+
+---
+
+# 6. Generalized MÃ¶bius Inversion (Sets/Subsets)
+
+Thereâ€™s also a **combinatorial version**:
+If
+
+$$
+g(S) = \sum_{T \subseteq S} f(T)
+$$
+
+then
+
+$$
+f(S) = \sum_{T \subseteq S} (-1)^{|S|-|T|} g(T)
+$$
+
+This is the **subset MÃ¶bius inversion**, which is the foundation of SOS DP (Sum Over Subsets DP).
+
+---
+
+# 7. Summary
+
+* **MÃ¶bius function $\mu(n)$:** encodes squarefreeness and parity of prime factors.
+* **Key identity:** $\sum_{d\mid n} \mu(d) = [n=1]$.
+* **MÃ¶bius inversion:** lets you invert divisor sums $g(n) = \sum_{d\mid n} f(d)$.
+* **Applications:** totient formula, coprime counting, gcd-based DP, multiplicative functions, subset sums.
+
+---
+
+ðŸ‘‰ Would you like me to now **work through a concrete coding example** (like â€œcount coprime pairs in $[1,n]$â€ or â€œcompute totient for all numbers up to $N$ using MÃ¶bius inversionâ€) so you see how to apply it in practice?
+
+
+
+
+
+
+
+
+
+Excellent, you found **stoyan\_malininâ€™s blog** about *â€œDP in Number Theoryâ€*.
+This blog is basically about a **dynamic programming reinterpretation of MÃ¶bius inversion / inclusion-exclusion** â€” a very practical way to count things like gcd/lcm pair statistics. Letâ€™s unpack it carefully.
+
+---
+
+## 1. The Core Problem
+
+> â€œFind the number of coprime pairs of integers from 1 to n.â€
+
+That is: count pairs $(x,y)$ with $1 \le x < y \le n$ and $\gcd(x,y)=1$.
+
+---
+
+## 2. First Observation
+
+If $\gcd(x,y) = d$, then **both numbers must be divisible by $d$**.
+So, we can first count all pairs where both numbers are divisible by $d$:
+
+$$
+\text{pairs divisible by } d = \binom{\lfloor n/d \rfloor}{2} = \frac{\lfloor n/d \rfloor(\lfloor n/d \rfloor-1)}{2}
+$$
+
+Letâ€™s call this value:
+
+$$
+dp[d] = \binom{\lfloor n/d \rfloor}{2}
+$$
+
+---
+
+## 3. What does $dp[d]$ represent?
+
+It counts all pairs whose gcd is a **multiple of $d$**.
+
+* Example: $dp[2]$ counts pairs with gcd $2, 4, 6, â€¦$.
+* Example: $dp[3]$ counts pairs with gcd $3, 6, 9, â€¦$.
+  So it **overcounts** if we want â€œgcd exactly $d$â€.
+
+---
+
+## 4. Fixing Overcounting (Exclusion Step)
+
+We want to transform $dp[d]$ into the **exact number of pairs with gcd = $d$**.
+
+Notice:
+
+* $dp[n]$ is already exact (since gcd canâ€™t be bigger than $n$).
+* More generally:
+
+  $$
+  \text{exact}[d] = dp[d] - \sum_{k=2d}^{n} \text{exact}[k]
+  $$
+
+This is the same as inclusionâ€“exclusion:
+
+* Subtract off pairs where gcd is $2d, 3d, \dots$.
+* After subtraction, only gcd = $d$ pairs remain.
+
+Thatâ€™s why the algorithm iterates **downward** from $d=n \to 1$:
+when we process $d$, the higher multiples are already correct.
+
+---
+
+## 5. The Algorithm
+
+1. Precompute initial array:
+
+   $$
+   dp[d] = \binom{\lfloor n/d \rfloor}{2}
+   $$
+2. Iterate $d$ from $n$ down to $1$.
+   For each multiple $k=2d,3d,\dots$:
+
+   $$
+   dp[d] \mathrel{-}= dp[k]
+   $$
+
+   After this, $dp[d]$ becomes the **exact number of pairs with gcd = $d$**.
+
+At the end:
+
+* $dp[1]$ = number of coprime pairs (since gcd=1).
+* More generally, $dp[d]$ = number of pairs with gcd = $d$.
+
+---
+
+## 6. Relation to MÃ¶bius Inversion
+
+This is literally MÃ¶bius inversion in disguise.
+Recall: If
+
+$$
+g(d) = \sum_{k: d \mid k} f(k),
+$$
+
+then
+
+$$
+f(d) = \sum_{k: d \mid k} \mu(k/d) g(k).
+$$
+
+Here:
+
+* $dp[d]$ before correction = â€œall pairs divisible by $d$â€ = sum of exact gcd counts for multiples of $d$.
+* The correction step subtracting multiples is exactly MÃ¶bius inversion.
+
+So this **â€œDP trickâ€ = MÃ¶bius inversion, implemented bottom-up.**
+
+---
+
+## 7. Extensions (Examples from blog)
+
+* **Example 1: gcd=1 pairs**
+  â†’ just output $dp[1]$.
+
+* **Example 2: sum of lcmâ€™s**
+  If gcd is $d$, then the pair is $d \cdot (a,b)$ with $\gcd(a,b)=1$.
+  Use the same idea but instead of counting pairs, add contribution:
+
+  $$
+  \text{lcm}(x,y) = \frac{x \cdot y}{\gcd(x,y)}.
+  $$
+
+  You can compute by grouping on gcd.
+
+* **Example 3 (other tasks)**
+  Similar style: count by gcd class, then subtract multiples.
+
+---
+
+## 8. Why Itâ€™s Called â€œDP in Number Theoryâ€
+
+* Youâ€™re not writing a combinatorial formula, youâ€™re doing **array DP over divisors**.
+* Transition: correct $dp[d]$ using results from multiples.
+* Itâ€™s equivalent to MÃ¶bius inversion, but feels algorithmic and simple.
+
+---
+
+âœ… **Summary:**
+
+* Compute raw counts over multiples ($dp[d]$).
+* Iterate downward, subtract multiples to isolate exact gcd.
+* This is inclusionâ€“exclusion / MÃ¶bius inversion in disguise.
+* General trick: *Count with gcd $\geq d$, then fix to gcd $=d$.*
+
+---
+
+Do you want me to **take the coprime pairs problem** and show you a **concrete worked example for $n=6$** with all the $dp[d]$ values before/after correction, so you can see the numbers cancel out step by step?
+
+

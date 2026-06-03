@@ -1,0 +1,1334 @@
+﻿
+===== crt.cpp =====
+#include <bits/stdc++.h>
+using namespace std;
+const int N = 2e6, mod = 1e9 + 7;
+using ll = long long;
+
+// Extended Euclidean Algorithm for gcd + coefficients
+std::tuple<ll, ll, ll> extended_gcd(ll a, ll b) {
+    if (b == 0) return {a, 1, 0};
+    ll g, x, y;
+    tie(g, x, y) = extended_gcd(b, a % b);
+    return {g, y, x - (a / b) * y};
+}
+
+long long mod_inv(long long b, long long n) {
+    long long g, x, y;
+    tie(g, x, y) = extended_gcd(b, n);
+    if (g != 1) throw std::invalid_argument("Inverse does not exist.");
+    return (x % n + n) % n;
+}
+
+struct Congruence {
+    long long a, m;
+};
+
+long long crt(vector<Congruence> const& congruences) {
+    long long M = 1;
+    for (auto &c : congruences) M *= c.m;
+
+    long long res = 0;
+    for (auto &c : congruences) {
+        long long Mi = M / c.m;
+        long long Ni = mod_inv(Mi, c.m); // modular inverse
+        res = (res + c.a * Mi % M * Ni) % M;
+    }
+    return res;
+}
+
+
+===== CRT_IntersectionofArithmeticProgressions.cpp =====
+#include<bits/stdc++.h>
+using namespace std;
+
+using T = __int128;
+using ll = long long;
+// ax + by = __gcd(a, b)
+// returns __gcd(a, b)
+T extended_euclid(T a, T b, T &x, T &y) {
+  T xx = y = 0;
+  T yy = x = 1;
+  while (b) {
+    T q = a / b;
+    T t = b; b = a % b; a = t;
+    t = xx; xx = x - q * xx; x = t;
+    t = yy; yy = y - q * yy; y = t;
+  }
+  return a;
+}
+// finds x such that x % m1 = a1, x % m2 = a2. m1 and m2 may not be coprime
+// here, x is unique modulo m = lcm(m1, m2). returns (x, m). on failure, m = -1.
+pair<T, T> CRT(T a1, T m1, T a2, T m2) {
+  T p, q;
+  T g = extended_euclid(m1, m2, p, q);
+  if (a1 % g != a2 % g) return make_pair(0, -1);
+  T m = m1 / g * m2;
+  p = (p % m + m) % m;
+  q = (q % m + m) % m;
+  return make_pair((p * a2 % m * (m1 / g) % m + q * a1 % m * (m2 / g) % m) %  m, m);
+}
+// intersecting AP of two APs: (a1 + d1x) and (a2 + d2x)
+pair<ll, ll> intersect(ll a1, ll d1, ll a2, ll d2) {
+  auto x = CRT(a1 % d1, d1, a2 % d2, d2);
+  ll a = x.first, d = x.second;
+  if (d == -1) return {0, 0}; // empty
+  ll st = max(a1, a2);
+  a = a < st ? a + ((st - a + d - 1) / d) : a; // while (a < st) a += d;
+  return {a, d};
+}
+int32_t main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  auto x = intersect(7, 9, 13, 12);
+  cout << x.first << ' ' << x.second << '\n';
+  return 0;
+}
+
+===== discrete_log.cpp =====
+#include <bits/stdc++.h>
+#include<ext/pb_ds/assoc_container.hpp>
+#include<ext/pb_ds/tree_policy.hpp>
+using namespace __gnu_pbds;
+using namespace std;
+
+// --- Type aliases ---
+using ll = long long;
+
+
+int gcd(int a, int b) {
+    return b == 0 ? a : gcd(b, a % b);
+}
+
+int discrete_log(int a, int b, ll p) {
+    a %= p, b %= p;
+    if(a == 0){
+        if(b == 1){
+            return 0;
+        }
+        else if(b == 0){
+            return 1;
+        }
+        else{
+            return -1;
+        }
+    }
+    if(b == 1 || p == 1) return 0;
+
+    gp_hash_table<ll, ll> mp;
+    int cnt = 0;
+    long long sum = 1;
+
+    for(int g = gcd(a, p); g != 1; g = gcd(a, p)) {
+        if(b % g) return -1;
+        p /= g, b /= g;
+        sum = sum * (a / g) % p;
+        cnt++;
+        if(sum == b) return cnt;
+    }
+
+    int m = (int)ceil(sqrt((double)p));
+    long long base = b;
+    for(int i = 0; i < m; i++) {
+        mp[base] = i;
+        base = base * a % p;
+    }
+
+    long long step = 1;
+    for(int i = 0; i < m; i++) step = step * a % p;
+
+    long long cur = sum;
+    for(int i = 1; i <= m+1; i++) {
+        cur = cur * step % p;
+        if(mp.find(cur) != mp.end())
+            return i * m - mp[cur] + cnt;
+    }
+    return -1;
+}
+
+// --- Example usage ---
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    ll a, b, m;
+    cin >> a >> b >> m;
+
+    ll x = discrete_log(a, b, m);
+    if (x == -1) cout << "No solution\n";
+    else cout << x << "\n";
+
+    return 0;
+}
+
+
+===== Euler's_totient.cpp =====
+#include<bits/stdc++.h> 
+using namespace std;
+
+using ll = long long;
+
+ll phi(ll n) {
+  ll ans = n, m = n;
+  for (ll i = 2; i * i <= m; i++) {
+    if (m % i == 0) {
+      while (m % i == 0) m /= i;
+      ans = ans / i * (i - 1);
+    }
+  }
+  if (m > 1) ans = ans / m * (m - 1);
+  return ans;
+}
+
+
+void phi_1_to_n(int n) { //O(n log log n)
+    vector<int> phi(n + 1);
+    for (int i = 0; i <= n; i++)
+        phi[i] = i;
+
+    for (int i = 2; i <= n; i++) {
+        if (phi[i] == i) {
+            for (int j = i; j <= n; j += i)
+                phi[j] -= phi[j] / i;
+        }
+    }
+}
+
+
+void phi_1_to_n(int n) { //O(nlogn) => using Divisor sum property
+    vector<int> phi(n + 1);
+    phi[0] = 0;
+    phi[1] = 1;
+    for (int i = 2; i <= n; i++)
+        phi[i] = i - 1;
+
+    for (int i = 2; i <= n; i++)
+        for (int j = 2 * i; j <= n; j += i)
+              phi[j] -= phi[i];
+}
+
+
+
+===== extended_gcd.cpp =====
+#include <bits/stdc++.h>
+using namespace std;
+const int N = 2e6, mod = 1e9 + 7;
+using ll = long long;
+
+// Extended Euclidean Algorithm for gcd + coefficients
+std::tuple<long long, long long, long long> extended_gcd(long long a, long long b) {
+    if (b == 0) return {a, 1, 0};
+    ll g, x, y;
+    tie(g, x, y) = extended_gcd(b, a % b);
+    return {g, y, x - (a / b) * y};
+}
+
+array<ll, 3> extend_euclid(ll a, ll b) {
+	// we know that (1 * a) + (0 * b) = a and (0 * a) + (1 * b) = b
+	array<ll, 3> x = {1, 0, a};
+	array<ll, 3> y = {0, 1, b};
+
+	// run extended Euclidean algo
+	while (y[2] > 0) {
+		// keep subtracting multiple of one equation from the other
+		ll k = x[2] / y[2];
+		for (int i = 0; i < 3; i++) { x[i] -= k * y[i]; }
+		swap(x, y);
+	}
+	return x;  // x[0] * a + x[1] * b = x[2], x[2] = gcd(a, b)
+}
+
+===== F_S_1.cpp =====
+#include <bits/stdc++.h>
+#pragma GCC optimize("unroll-loops")
+using namespace std;
+using std::cout;
+using std::cin;
+using std::endl;
+using ll=long long;
+using ld=long double;
+const ll ILL=2167167167167167167;
+const int INF=2100000000;
+const int mod=998244353;
+#define rep(i,a,b) for (int i=(int)(a);i<(int)(b);i++)
+#define all(p) p.begin(),p.end()
+template<class T> using _pq = priority_queue<T, vector<T>, greater<T>>;
+template<class T> ll LB(vector<T> &v,T a){return lower_bound(v.begin(),v.end(),a)-v.begin();}
+template<class T> ll UB(vector<T> &v,T a){return upper_bound(v.begin(),v.end(),a)-v.begin();}
+template<class T> bool chmin(T &a,T b){if(a>b){a=b;return 1;}else return 0;}
+template<class T> bool chmax(T &a,T b){if(a<b){a=b;return 1;}else return 0;}
+template<class T> void So(vector<T> &v) {sort(v.begin(),v.end());}
+template<class T> void Sore(vector<T> &v) {sort(v.begin(),v.end(),[](T x,T y){return x>y;});}
+void yneos(bool a,bool upp=0){if(a) cout<<(upp?"YES\n":"Yes\n"); else cout<<(upp?"NO\n":"No\n");}
+template<class T> void vec_out(vector<T> &p,int ty=0){
+if(ty==2){cout<<'{';for(int i=0;i<(int)p.size();i++){if(i){cout<<",";}cout<<'"'<<p[i]<<'"';}cout<<"}\n";}
+else{if(ty==1){cout<<p.size()<<"\n";}for(int i=0;i<(int)(p.size());i++){if(i) cout<<" ";cout<<p[i];}cout<<"\n";}}
+template<class T> T vec_min(vector<T> &a){assert(!a.empty());T ans=a[0];for(auto &x:a) chmin(ans,x);return ans;}
+template<class T> T vec_max(vector<T> &a){assert(!a.empty());T ans=a[0];for(auto &x:a) chmax(ans,x);return ans;}
+template<class T> T vec_sum(vector<T> &a){T ans=T(0);for(auto &x:a) ans+=x;return ans;}
+int pop_count(long long a){int res=0;while(a){res+=(a&1),a>>=1;}return res;}
+//a*x+b*y=gcd(a,b)ã¨ãªã‚‹x,yã«ã™ã‚‹ã€€è¿”ã‚Šå€¤gcd(a,b)
+ll Euclid(ll a,ll b,ll &x,ll &y){
+    if(b==0){
+        x=1,y=0;
+        return a;
+    }
+    ll d=Euclid(b,a%b,y,x);
+    y-=a/b*x;
+    return d;
+}
+
+// val1=(a,p) val2=(b,q)
+// return (c,r)
+// c: c%p==a && c%q==b
+// r: r=lcm(a,b)
+// need: a%gcd(p,q)==b%gcd(p,q)
+// use: Euclid
+std::pair<long long,long long> ctr_sub(std::pair<long long,long long> val1,std::pair<long long,long long> val2){
+	long long a,b,p,q;
+	long long X,Y,G,ans_val,ans_mod;
+	tie(a,p)=val1;
+	tie(b,q)=val2;
+	G=Euclid(p,q,X,Y);
+	if((b-a)%G!=0) return {-1,-1};
+	ans_mod=p*(q/G);
+	ans_val=(p*((X*((b-a)/G))%q))%ans_mod+a;
+	return {(ans_val%ans_mod+ans_mod)%ans_mod,ans_mod};
+}
+
+
+void solve();
+// oddloop
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    
+    int t=1;
+    //cin>>t;
+    rep(i,0,t) solve();
+}
+
+void solve(){
+    ll X,Y;
+    cin>>X>>Y;
+    ll a,b;
+    auto g=Euclid(abs(X),abs(Y),a,b);
+    if(g>2){
+        cout<<"-1\n";
+    }
+    else{
+        if(g==1) a*=2,b*=2;
+        b*=-1;
+        if(X<0) a*=-1;
+        if(Y<0) b*=-1;
+        cout<<b<<" "<<a<<endl;
+    }
+}
+
+===== lcm_array.cpp =====
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+using i128 = __int128_t;
+
+ll lcm_array(const vector<ll>& v, ll limit) {
+    i128 L = 1;
+    for (ll x : v) {
+        ll g = std::gcd((ll)L, x);
+        i128 t = (L / g) * (i128)x;
+        if (t > (i128)limit) return limit + 1; // cap: larger than limit means useless
+        L = t;
+    }
+    return (ll)L;
+}
+
+
+===== LinearDiophantineEquationWithTwoVariables.cpp =====
+#include <bits/stdc++.h>
+using namespace std;
+
+using ll = long long;
+ll extended_euclid(ll a, ll b, ll &x, ll &y)
+{
+    ll xx = y = 0;
+    ll yy = x = 1;
+    while (b)
+    {
+        ll q = a / b;
+        ll t = b;
+        b = a % b;
+        a = t;
+        t = xx;
+        xx = x - q * xx;
+        x = t;
+        t = yy;
+        yy = y - q * yy;
+        y = t;
+    }
+    return a;
+}
+// a*x+b*y=c. returns valid x and y if possible.
+// all solutions are of the form (x0 + k * b / g, y0 - k * b / g)
+bool find_any_solution(ll a, ll b, ll c, ll &x0, ll &y0, ll &g)
+{
+    if (a == 0 and b == 0)
+    {
+        if (c)
+            return false;
+        x0 = y0 = g = 0;
+        return true;
+    }
+    g = extended_euclid(abs(a), abs(b), x0, y0);
+    if (c % g != 0)
+        return false;
+    x0 *= c / g;
+    y0 *= c / g;
+    if (a < 0)
+        x0 *= -1;
+    if (b < 0)
+        y0 *= -1;
+    return true;
+}
+void shift_solution(ll &x, ll &y, ll a, ll b, ll cnt)
+{
+    x += cnt * b;
+    y -= cnt * a;
+}
+// returns the number of solutions where x is in the range[minx, maxx] and y is in the range[miny, maxy]
+ll find_all_solutions(ll a, ll b, ll c, ll minx, ll maxx, ll miny, ll maxy)
+{
+    ll x, y, g;
+    if (find_any_solution(a, b, c, x, y, g) == 0)
+        return 0;
+    if (a == 0 and b == 0)
+    {
+        assert(c == 0);
+        return 1LL * (maxx - minx + 1) * (maxy - miny + 1);
+    }
+    if (a == 0)
+    {
+        return (maxx - minx + 1) * (miny <= c / b and c / b <= maxy);
+    }
+    if (b == 0)
+    {
+        return (maxy - miny + 1) * (minx <= c / a and c / a <= maxx);
+    }
+    a /= g, b /= g;
+    ll sign_a = a > 0 ? +1 : -1;
+    ll sign_b = b > 0 ? +1 : -1;
+    shift_solution(x, y, a, b, (minx - x) / b);
+    if (x < minx)
+        shift_solution(x, y, a, b, sign_b);
+    if (x > maxx)
+        return 0;
+    ll lx1 = x;
+    shift_solution(x, y, a, b, (maxx - x) / b);
+    if (x > maxx)
+        shift_solution(x, y, a, b, -sign_b);
+    ll rx1 = x;
+    shift_solution(x, y, a, b, -(miny - y) / a);
+    if (y < miny)
+        shift_solution(x, y, a, b, -sign_a);
+    if (y > maxy)
+        return 0;
+    ll lx2 = x;
+    shift_solution(x, y, a, b, -(maxy - y) / a);
+    if (y > maxy)
+        shift_solution(x, y, a, b, sign_a);
+    ll rx2 = x;
+    if (lx2 > rx2)
+        swap(lx2, rx2);
+    ll lx = max(lx1, lx2);
+    ll rx = min(rx1, rx2);
+    if (lx > rx)
+        return 0;
+    return (rx - lx) / abs(b) + 1;
+}
+
+int32_t main()
+{
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    int t, cs = 0;
+    cin >> t;
+    while (t--)
+    {
+        ll a, b, c, x1, x2, y1, y2;
+        cin >> a >> b >> c >> x1 >> x2 >> y1 >> y2;
+        cout << "Case " << ++cs << ": " << find_all_solutions(a, b, -c, x1, x2, y1, y2) << '\n';
+    }
+    return 0;
+}
+// https://lightoj.com/problem/solutions-to-an-equation
+
+===== Math_Formulas.pdf =====
+%PDF-1.4
+%“Œ‹ž ReportLab Generated PDF document http://www.reportlab.com
+1 0 obj
+<<
+/F1 2 0 R /F2 3 0 R /F3 4 0 R
+>>
+endobj
+2 0 obj
+<<
+/BaseFont /Helvetica /Encoding /WinAnsiEncoding /Name /F1 /Subtype /Type1 /Type /Font
+>>
+endobj
+3 0 obj
+<<
+/BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding /Name /F2 /Subtype /Type1 /Type /Font
+>>
+endobj
+4 0 obj
+<<
+/BaseFont /Symbol /Name /F3 /Subtype /Type1 /Type /Font
+>>
+endobj
+5 0 obj
+<<
+/Contents 10 0 R /MediaBox [ 0 0 595.2756 841.8898 ] /Parent 9 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+6 0 obj
+<<
+/Contents 11 0 R /MediaBox [ 0 0 595.2756 841.8898 ] /Parent 9 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+7 0 obj
+<<
+/PageMode /UseNone /Pages 9 0 R /Type /Catalog
+>>
+endobj
+8 0 obj
+<<
+/Author (\(anonymous\)) /CreationDate (D:20250907002323+00'00') /Creator (\(unspecified\)) /Keywords () /ModDate (D:20250907002323+00'00') /Producer (ReportLab PDF Library - www.reportlab.com) 
+  /Subject (\(unspecified\)) /Title (\(anonymous\)) /Trapped /False
+>>
+endobj
+9 0 obj
+<<
+/Count 2 /Kids [ 5 0 R 6 0 R ] /Type /Pages
+>>
+endobj
+10 0 obj
+<<
+/Filter [ /ASCII85Decode /FlateDecode ] /Length 1276
+>>
+stream
+GatU4gN&cE'Re;/m&,l-3nP'Qm*,6u3Fd7oPI<JMpPimBMdkud"Qbg#D>N^69Al&E6,[B&O9eF^p=bk@'`qmXLq3gG_"A%(9*0d`l4/V]=KoAf`Tlge)6$[u;fKh%Qqh9mgjp-KKfm)':1+e=V/k=(8V'RsMoP&)ehC4e3>2Sj,']`5A`RFl-KE&lAd&_''mqE>T4P7\YU%to_s0Hg?,0j9A2173pC@h]^N_o\1a\9N%]1Q_Bu&P7H&C@>YSCP==[&)T$uBCg2&BT-K>f`CKS!P"7"?XO\FsqGrO3e.QkS6@`'Pt*k_6:YU<"=a`,WR5GjlW!pDi0<KG`kH6p=NoI/4c%rdM4]V8ZqeF45^';M4/<M$MGI0>^+iI5,#@0O5[C&TR[*W<7r>$(rg<^=49U$i&oqU1CAkQT5jtaM4'JL4:%D?t6f#k&&.&2<Lk=9:!P'iDN9h\D]jgYpq&&X9*kno'aL[bAsJ4B\U51X+3aHgd-6XO<4)"dF(-Z9H@<_*4uKji!q$YWI$f3IKq=k*7Bed9\H]]64AktcH_9t&?D9sN?O38@[XU`H2Mm4K1G!N9TEnPCE);/)pM^.W=F^+>GjK^nh\7e%B'0W0[Xj/ecOR*!nQ^;'qi!P<">ub@[.WI',d+4#a?0bi-*![LH9gKdu300K1@&FF*RIK=rh%>/WTULr"]<7<MY$^$5mQm+1+^8H3qo[9Vc$_iW=V)-D_Pj9EqF2T[c\h:3)UbEI*)oD%#UrJ=o2=U_4uir.C*o"ij08Op,n2TA9$7MMaSSc!H\3>q!+_fNkm%nEG3#^A\H]`:%3h$7iQlk0X,#\k;^k;SK2$,usIuPV_=oOtQTqFO:]-`,)K(k-Vbm[+2pJ!Op/]fpJi;#i7>Q1,%WO=]eOt"(b5R\`0f221)73P)O-t]X7+=^KP,RWfq&0-N8(HQ=/1..P_BS:UA!#=I`IPl/PQI(rjbq;q#Ir4d2BeH<?f%mNCL4o)u^_eqlHGk^_#_04&DiAJ6%/EEX,KdlmFJ@k%$1!41&4,*W\d=?E\jrig/-I=6jsBe*?95+O6@RMX_1+h4ag9ad\&UU<K&EnCkGOI*cfbE,eU\!739h4>'EN>=j-VaO;KPU7^uQsJ/f5EiB:5O=(i#DVkdMiP39o]n[>HnKq3M=*ON>SMt*Al'u%7J5411Oq;cN5I*mh0l[+!5$c#/f5YVr^k$h/"$Y[/FYpXeX_kC?XAcD2?2!"7>G]ZfPi/b,5[TmV<ZR`(;$?Sl)_DR/H5\OSG`t8Vh)P~>endstream
+endobj
+11 0 obj
+<<
+/Filter [ /ASCII85Decode /FlateDecode ] /Length 1241
+>>
+stream
+GauHKd;IZ/'Rf-pDVfm\nCST<8:B-rTirm9Bk-gEj.mU;!7TjD1H#Qm<W@L9fHdT)Ghh</$H^pV[a1@gn!nGn^r@HFNc>-i5(pb:!-',d!ZC]e&731af\3dTiD+k2^.8%[EA5B[=s)Wq3T$aC/\@BHWtrF8]HZ;r'1?j0r<:>GA$hfSW"5(L(G'(cM'\CE"]Gu8R8ba%5kl)2Y,:d[?^S9+Ms6In\2(\3F:-6Jpce&<Gkkb4^6s(jk:lMi0q]M\Fs7`an>Kj5'@59l;QcTNEfXe3Gf"FF7!]Qs#Kf;X#4F$T?WV2A\-4[KO3In*oXQsCpJJOmU(3EG0bX24s#J6B+1S;q8QRRLX-Zk!B,5WK.iS4`ANY#3PKPrL_s]^G(!@J"aV@fX*=4KIJ+MWrL(J&5iZ#FRA3fTZ#ke+lSneVcojKQd'NfB1j.!!<D,lUP;9+XY"^VkTCW0bNUq9l%-#.oE2/)#>3\mIU]Z*Kc&WE'FOOO#[)'SrN-2!!?/#i"1i<k:'.]c%+Y,TM4$8/eLRWBoMDW-e4cWH^+@V4]b1^XWH_`>r5Fm<C01W\Wh=0UW+-*6)pe>Ce:'kkE*q1</h)nD&"Wqh2PVWd0-_Ze3244r</0P\o=X/M5W1?-Ze%6Y]*LS;@i6b-`LHpdjH>/W*#WffOceLNmRdK@)lf0#fp_DP7s/rULW7WFsh\J-l\\b;$=7R@/=K=$0j`WQe-7M9o-&*`U0'EWp/bS%M')UI@CZ5mi1Hqe[LIed3<5CE?NWLSDL5:;aaVp\o,i+.2Ng4>)Sk$4-t3FqY`nEnLL1N##;Sj[F(W?RYf$jO4hFbW7H*',mr^`>9fN$!TCBocArkZ5u905KLZ7fMqGl4u4=GeEgjD?TbalQPQOIqFPo_oitJ3F:9u*kIVZ6gCNCGhom<p4Q_1!rN]P[F<?DVc#h6"/cr)QtD*M=rmW?B3EbFCE2].(&%KZSY)?,kkL.e'u:RhWYiro`d0(;j,3";a<fbjNPJksZT-70cJmRQ@4!<.Au4)Y-D'n0O[h3sraU4-'O='BYbZ7kYu034^nIGP[*Q[@"H=,!@%a3(`q/X5rkbj"5Z*%PIcjEhKgl:,9)0jkWUfM(:1#rKMXTMET1Zr([Asg-1Xj$+bHhPnm#c41pE;$>m4G_RIV7IL$gbL;qa-9^HZ\r*7,Mh@NCHZ<,A28cj:[c^EC2?UENlEhjC/:^ZLc%5fdXm.D!l0InU="B[/L(^_shL~>endstream
+endobj
+xref
+0 12
+0000000000 65535 f 
+0000000073 00000 n 
+0000000124 00000 n 
+0000000231 00000 n 
+0000000343 00000 n 
+0000000420 00000 n 
+0000000624 00000 n 
+0000000828 00000 n 
+0000000896 00000 n 
+0000001179 00000 n 
+0000001244 00000 n 
+0000002612 00000 n 
+trailer
+<<
+/ID 
+[<006fbd634e2c8558ce633362da81d307><006fbd634e2c8558ce633362da81d307>]
+% ReportLab generated PDF document -- digest (http://www.reportlab.com)
+
+/Info 8 0 R
+/Root 7 0 R
+/Size 12
+>>
+startxref
+3945
+%%EOF
+
+
+===== mobius_func.cpp =====
+#include <bits/stdc++.h>
+using namespace std;
+
+using ll = long long;
+
+
+const ll VALMAX = 1e7;
+ll mobius[VALMAX];
+
+void mob_init()
+{
+    mobius[1] = -1;
+    for (ll i = 1; i < VALMAX; i++)
+    {
+        if (mobius[i])
+        {
+            mobius[i] = -mobius[i];
+            for (ll j = 2 * i; j < VALMAX; j += i)
+            {
+                mobius[j] += mobius[i];
+            }
+        }
+    }
+}
+
+int main()
+{
+   
+}
+
+===== mod_funcs.cpp =====
+#include <bits/stdc++.h>
+using namespace std;
+const int N = 2e6, mod = 1e9 + 7;
+using ll = long long;
+
+
+// Modular multiplication: (a * b) % mod without overflow
+ll moduloMultiplication(ll a, ll b, ll mod) {
+    ll res = 0;
+    a %= mod;  
+    while (b) {
+        if (b & 1) res = (res + a) % mod;
+        a = (a * 2) % mod;
+        b >>= 1;
+    }
+    return res;
+}
+
+// Modular exponentiation: (x^n) % m
+ll modpow(ll x, ll n, ll m = mod) {
+    if (x == 0 && n == 0) return 1; // undefined case
+    ll res = 1;
+    while (n > 0) {
+        if (n % 2) res = (res * x) % m;
+        x = (x * x) % m;
+        n /= 2;
+    }
+    return res;
+}
+
+// Modular inverse using Fermat's Little Theorem (works if m is prime)
+int modinv(int x, int m = mod) {
+    return modpow(x, m - 2, m);
+}
+
+// Extended Euclidean Algorithm for gcd + coefficients
+std::tuple<long long, long long, long long> extended_gcd(long long a, long long b) {
+    if (b == 0) return {a, 1, 0};
+    ll g, x, y;
+    tie(g, x, y) = extended_gcd(b, a % b);
+    return {g, y, x - (a / b) * y};
+}
+
+array<ll, 3> extend_euclid(ll a, ll b) {
+	// we know that (1 * a) + (0 * b) = a and (0 * a) + (1 * b) = b
+	array<ll, 3> x = {1, 0, a};
+	array<ll, 3> y = {0, 1, b};
+
+	// run extended Euclidean algo
+	while (y[2] > 0) {
+		// keep subtracting multiple of one equation from the other
+		ll k = x[2] / y[2];
+		for (int i = 0; i < 3; i++) { x[i] -= k * y[i]; }
+		swap(x, y);
+	}
+	return x;  // x[0] * a + x[1] * b = x[2], x[2] = gcd(a, b)
+}
+
+// Modular inverse using Extended Euclid (works for any m if gcd(b, m) == 1)
+long long mod_inverse(long long b, long long n) {
+    long long g, x, y;
+    tie(g, x, y) = extended_gcd(b, n);
+    if (g != 1) throw std::invalid_argument("Inverse does not exist.");
+    return (x % n + n) % n;
+}
+
+// Modular division: (a / b) % n
+long long mod_division(long long a, long long b, long long n) {
+    long long g = gcd(b, n);
+    if (a % g != 0) throw std::invalid_argument("No solution exists.");
+    a /= g; b /= g; n /= g;
+    long long b_inv = mod_inverse(b, n);
+    return (a * b_inv) % n;
+}
+
+
+===== modifiable_mod.cpp =====
+#include <bits/stdc++.h>
+using namespace std;
+
+const int N = 2e6;
+int mod = 1000000007; // set mod BEFORE any combinatorics
+
+struct modint {
+    int32_t value;
+    modint() : value(0) {}
+    modint(long long v) {
+        v %= mod;
+        if (v < 0) v += mod;
+        value = (int32_t)v;
+    }
+    inline modint operator+(modint o) const {
+        int32_t c = value + o.value;
+        if (c >= mod) c -= mod;
+        return modint(c);
+    }
+    inline modint operator-(modint o) const {
+        int32_t c = value - o.value;
+        if (c < 0) c += mod;
+        return modint(c);
+    }
+    inline modint operator*(modint o) const {
+        return modint(1LL * value * o.value % mod);
+    }
+    inline modint& operator+=(modint o){ return *this = *this + o; }
+    inline modint& operator-=(modint o){ return *this = *this - o; }
+    inline modint& operator*=(modint o){ return *this = *this * o; }
+    inline modint operator-() const { return modint(value ? mod - value : 0); }
+    modint pow(uint64_t k) const {
+        modint x = *this, y = 1;
+        while (k) { if (k & 1) y *= x; x *= x; k >>= 1; }
+        return y;
+    }
+    modint inv() const { return pow(mod - 2); } // mod must be prime
+    inline modint operator/(modint o) const { return *this * o.inv(); }
+    inline modint& operator/=(modint o){ return *this *= o.inv(); }
+};
+ostream& operator<<(ostream& out, modint n){ return out << n.value; }
+
+using mint = modint;
+
+struct Combi {
+    int n;
+    vector<mint> fact_, finv_, inv_;
+    Combi(int _n) : n(_n), fact_(_n), finv_(_n), inv_(_n) {
+        fact_[0] = finv_[0] = 1;
+        inv_[0] = 0;            // unused, but set to be safe
+        if (n > 1) inv_[1] = 1;
+        for (int i = 2; i < n; i++) {
+            // inv[i] = (mod - mod/i) * inv[mod % i] % mod
+            inv_[i] = mint(mod - mod / i) * inv_[mod % i];
+        }
+        for (int i = 1; i < n; i++) {
+            fact_[i] = fact_[i - 1] * mint(i);
+            finv_[i] = (i == 1) ? 1 : finv_[i - 1] * inv_[i];
+        }
+    }
+    inline mint fact(int k)  const { return fact_[k]; }
+    inline mint finv(int k)  const { return finv_[k]; }
+    inline mint inv(int k)   const { return inv_[k]; }
+    inline mint ncr(int nn, int kk) const {
+        if (kk < 0 || nn < 0 || kk > nn) return mint(0);
+        return fact_[nn] * finv_[kk] * finv_[nn - kk];
+    }
+};
+
+// construct AFTER mod is set (here it's already set globally)
+Combi C(N);
+
+mint yo(int n, int win) {
+    if (n == 2) return win ? mint(1) : mint(0);
+    mint ans = 0;
+    if (win) {
+        ans = C.ncr(n - 1, n / 2 - 1);
+        ans += yo(n - 2, !win);
+    } else {
+        ans = C.ncr(n - 2, n / 2 - 2);
+        ans += yo(n - 2, !win);
+    }
+    return ans;
+}
+
+int main() {
+    // Basic Modular Arithmetic
+    mint a = 10, b = 3;
+    cout << "a + b = " << a + b << "\n";
+    cout << "a - b = " << a - b << "\n";
+    cout << "a * b = " << a * b << "\n";
+    cout << "a / b = " << a / b << "\n";
+
+    // Modular Exponentiation
+    cout << "a^3 = " << a.pow(3) << "\n";
+
+    // Modular Inverse
+    cout << "a^-1 = " << a.inv() << "\n";
+
+    // Combinatorics Calculations
+    int n = 5, r = 2;
+    cout << "n! = " << C.fact(n) << "\n";
+    cout << "n!^-1 = " << C.finv(n) << "\n";
+    cout << "nCr = " << C.ncr(n, r) << "\n";
+
+    // Paths in a Grid
+    int grid_n = 4, grid_m = 3;
+    cout << "Paths in a grid: " << C.ncr(grid_n + grid_m - 2, grid_n - 1) << "\n";
+}
+
+
+===== Modular.cpp =====
+#include <bits/stdc++.h>
+using namespace std;
+const int N = 2e6, mod = 1e9 + 7;
+
+template <const int32_t MOD>
+struct modint
+{
+    int32_t value;
+    modint() = default;
+    modint(int64_t value_)
+    {
+        value = int32_t(value_ % MOD);
+        if (value < 0)
+            value += MOD;
+    }
+    inline modint<MOD> operator+(modint<MOD> other) const
+    {
+        int32_t c = this->value + other.value;
+        return modint<MOD>(c >= MOD ? c - MOD : c);
+    }
+    inline modint<MOD> operator-(modint<MOD> other) const
+    {
+        int32_t c = this->value - other.value;
+        return modint<MOD>(c < 0 ? c + MOD : c);
+    }
+    inline modint<MOD> operator*(modint<MOD> other) const
+    {
+        int32_t c = (int64_t)this->value * other.value % MOD;
+        return modint<MOD>(c < 0 ? c + MOD : c);
+    }
+    inline modint<MOD> &operator+=(modint<MOD> other)
+    {
+        this->value += other.value;
+        if (this->value >= MOD)
+            this->value -= MOD;
+        return *this;
+    }
+    inline modint<MOD> &operator-=(modint<MOD> other)
+    {
+        this->value -= other.value;
+        if (this->value < 0)
+            this->value += MOD;
+        return *this;
+    }
+    inline modint<MOD> &operator*=(modint<MOD> other)
+    {
+        this->value = (int64_t)this->value * other.value % MOD;
+        if (this->value < 0)
+            this->value += MOD;
+        return *this;
+    }
+    inline modint<MOD> operator-() const { return modint<MOD>(this->value ? MOD - this->value : 0); }
+    modint<MOD> pow(uint64_t k) const
+    {
+        modint<MOD> x = *this, y = 1;
+        for (; k; k >>= 1)
+        {
+            if (k & 1)
+                y *= x;
+            x *= x;
+        }
+        return y;
+    }
+
+    modint<MOD> pow(modint<MOD> k) const
+    {
+        modint<MOD> x = *this, y = 1;
+        for (; k.value; k.value >>= 1)
+        {
+            if (k.value & 1)
+                y *= x;
+            x *= x;
+        }
+        return y;
+    }
+    
+    modint<MOD> inv() const { return pow(MOD - 2); } // MOD must be a prime
+    inline modint<MOD> operator/(modint<MOD> other) const { return *this * other.inv(); }
+    inline modint<MOD> operator/=(modint<MOD> other) { return *this *= other.inv(); }
+    inline bool operator==(modint<MOD> other) const { return value == other.value; }
+    inline bool operator!=(modint<MOD> other) const { return value != other.value; }
+    inline bool operator<(modint<MOD> other) const { return value < other.value; }
+    inline bool operator>(modint<MOD> other) const { return value > other.value; }
+};
+template <int32_t MOD>
+modint<MOD> operator*(int64_t value, modint<MOD> n) { return modint<MOD>(value) * n; }
+template <int32_t MOD>
+modint<MOD> operator*(int32_t value, modint<MOD> n) { return modint<MOD>(value % MOD) * n; }
+template <int32_t MOD>
+istream &operator>>(istream &in, modint<MOD> &n) { return in >> n.value; }
+template <int32_t MOD>
+ostream &operator<<(ostream &out, modint<MOD> n) { return out << n.value; }
+
+using mint = modint<mod>;
+
+struct Combi
+{
+    int n;
+    vector<mint> facts, finvs, invs;
+    Combi(int _n) : n(_n), facts(_n), finvs(_n), invs(_n)
+    {
+        facts[0] = finvs[0] = 1;
+        invs[1] = 1;
+        for (int i = 2; i < n; i++)
+            invs[i] = invs[mod % i] * (-mod / i);
+        for (int i = 1; i < n; i++)
+        {
+            facts[i] = facts[i - 1] * i;
+            finvs[i] = finvs[i - 1] * invs[i];
+        }
+    }
+    inline mint fact(int n) { return facts[n]; }
+    inline mint finv(int n) { return finvs[n]; }
+    inline mint inv(int n) { return invs[n]; }
+    inline mint ncr(int n, int k) { return (n < k or n < 0 or k < 0) ? 0 : facts[n] * finvs[k] * finvs[n - k]; }
+};
+Combi C(N);
+
+mint yo(int n, int win)
+{
+    if (n == 2)
+    {
+        if (win)
+            return 1;
+        return 0;
+    }
+    mint ans = 0;
+    if (win)
+    {
+        ans = C.ncr(n - 1, n / 2 - 1);
+        ans += yo(n - 2, !win);
+    }
+    else
+    {
+        ans = C.ncr(n - 2, n / 2 - 2);
+        ans += yo(n - 2, !win);
+    }
+    return ans;
+}
+
+int main()
+{
+    // 1. Basic Modular Arithmetic
+    mint a = 10, b = 3;
+    cout << "a + b = " << a + b << endl;
+    cout << "a - b = " << a - b << endl;
+    cout << "a * b = " << a * b << endl;
+    cout << "a / b = " << a / b << endl;
+
+    // 2. Modular Exponentiation
+    cout << "a^3 = " << a.pow(3) << endl;
+
+    // 3. Modular Inverse
+    cout << "a^-1 = " << a.inv() << endl;
+
+    // 4. Combinatorics Calculations
+    int n = 5, r = 2;
+    cout << "n! = " << C.fact(n) << endl;
+    cout << "n!^-1 = " << C.finv(n) << endl;
+    cout << "nCr = " << C.ncr(n, r) << endl;
+
+    // 5. Paths in a Grid
+    int grid_n = 4, grid_m = 3;
+    cout << "Paths in a grid: " << C.ncr(grid_n + grid_m - 2, grid_n - 1) << endl;
+}
+
+
+===== Modular_Math_Formulas.pdf =====
+%PDF-1.4
+%“Œ‹ž ReportLab Generated PDF document http://www.reportlab.com
+1 0 obj
+<<
+/F1 2 0 R /F2 3 0 R /F3 4 0 R
+>>
+endobj
+2 0 obj
+<<
+/BaseFont /Helvetica /Encoding /WinAnsiEncoding /Name /F1 /Subtype /Type1 /Type /Font
+>>
+endobj
+3 0 obj
+<<
+/BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding /Name /F2 /Subtype /Type1 /Type /Font
+>>
+endobj
+4 0 obj
+<<
+/BaseFont /Symbol /Name /F3 /Subtype /Type1 /Type /Font
+>>
+endobj
+5 0 obj
+<<
+/Contents 10 0 R /MediaBox [ 0 0 595.2756 841.8898 ] /Parent 9 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+6 0 obj
+<<
+/Contents 11 0 R /MediaBox [ 0 0 595.2756 841.8898 ] /Parent 9 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+7 0 obj
+<<
+/PageMode /UseNone /Pages 9 0 R /Type /Catalog
+>>
+endobj
+8 0 obj
+<<
+/Author (\(anonymous\)) /CreationDate (D:20250907001949+00'00') /Creator (\(unspecified\)) /Keywords () /ModDate (D:20250907001949+00'00') /Producer (ReportLab PDF Library - www.reportlab.com) 
+  /Subject (\(unspecified\)) /Title (\(anonymous\)) /Trapped /False
+>>
+endobj
+9 0 obj
+<<
+/Count 2 /Kids [ 5 0 R 6 0 R ] /Type /Pages
+>>
+endobj
+10 0 obj
+<<
+/Filter [ /ASCII85Decode /FlateDecode ] /Length 1190
+>>
+stream
+GatU3>B?8n'RnB33):RXL+NGGhO-J_]6:).fsX!8^+l&7,2:fo5nTo9J,LDpglaM8M&C+p(XRB?F*,\4JI*C9S.bpB]7TR9!26W#"7[?A<d1cMSUEREmEArB!LZ$UfmJNMhuGr-I_LM2@3pG%rRc?dJ^!bE-KZ^80NomDAAt;Prm&tRMb85$nnK[W`=mJ$T5"tE&lr5&Qhti+r<KA2(bP>Wi*:Eg5Wo))nJ'H*r5A5DBGusBg]Nk?\31;U!;;B51MsqK-P"pP)3oPNm##$dkS;Di6o'JN80R3SmBFEsqX.33[)%?#Ql%B/bY^o_!5_S9QOnr8+S$3LggH321G.t,`--NA*G/IEGfR?TK'1j>kIQQVd>:q5U@Y(G/hEABhTQQ<L>ZbJLcl';59ROU5ld8@3?2W+`dk3,QQ&cYlDVW?`sQYBpVjcepnu+oF^W<`&QL!N<5BTYWf/f>OpMfsLQMNa+'GS1%AN;%iiW<VaU1PW2*lQ4@cO<^CbcH547__q\3`1'4;ZuP(%='p^_IP0(X1O;8Q#tW.ic5G<^XO[KN\dee/9dE*A?G[^C20G%l%4o-FYmjUGf]9P#E;0NOMZ(<o[hMO*7&eIEQ0AD,q$XD\_d(VcEi`qp(ljj_OXL5B<$U$HDSC(>U#N1+sKam2@6^Z@^jfJf1Y_pPe+^E?*e\\7Z?'`M\?o4@YB"Qfpi[a<`k_Y>ekKH+\RP\(9ZS5mdMO-rPItVLeU76XP0!0%@XfA+VLYXhhlNcXYGY2NHGR#/--X3M$?M,&cb^Qi+I]7-6Ud%ns8ab4lL52G(jlb+/tcrjT;H<U7Y@eu&-6Uir]KmI#F?L2qo4jlBd&Q=.6T%%3A@(M+Y#9W0:T`V<5N=MIHG\C9:9m(0)1@#CEgktX"*Z:Mk0Cm,fPBa$7cU9sQ.q2sa4W%4\.O[i6RJjm8%Ps=7`eIg/rHdah2X%$@5p)W/dWtfrd>+nlZ.uR]P&7!qpAck=(l4G:-_<u%KW_U!!D5.H4SX/@6!ult5.g3&J#BDj9/q0gRY"sN-FfX:]VHRk<HQ*eW+2l3(D'uYU.dGW+$)ft5N,[sS^fbl61<!^m1'Q7T0[cr?c\K0nKt>S8W"\U/A13H;biP_'R7nGK:s*RqDoG)!o($Cl(&no'<b,a&DY]`6[J=3B40C'`FdD5N/%.chnnAVIrrY.^m_o~>endstream
+endobj
+11 0 obj
+<<
+/Filter [ /ASCII85Decode /FlateDecode ] /Length 1237
+>>
+stream
+GauHKhf%40'RoLXEV]kr5b%sD.dc2T>G`ncWEZ,\XD'$q%!X(Al6It;ec,;i*%9PkibW/:64/PiqtnYLJ*2K8NB^<Iirn:W#lP&1i]t!Riq5D>0B"*;GrQtZ2uO?`hOleG"X@9''6ZC0Q7'2.m'jld$#\k_-KS8Q]hurj%XTm9EPXC7+':k?Qnnp)MFkdM2M>E[ltF'+q"krXnS9kM/LJoT92)8%N/6r?#0P3f'DL%Qj#al@=3H,7Lg#Y*6c,V,"]%6f5t\\6ilF9KWT"6%3?r69mjJ;&.D2XQI9"*Di>,*I/t;S-m;mQrn"NjL6uCQp@jGm&s0J%&0=\0F8Oj`PdACcU1QC*8MhV8c>P*5V8<-I*TEfu</64<7E%.,Q@<Np;kjA&TlP`)r,8X_1ocjQbGD*#00DSj?d&hMMJY9fCM]#klXmA@8L`!O8n4:n/mn0ie->ATXY=,KGU'Ak[Ua&g,a"-dm#Jp19'66-<1DAgl(f[?i@!K&AqL]hoU6&9,R4-N!'feIo`Buq40#a,\pa"fC-E!`.)**#&gd3r=#.%q_H<AQ'1:]#0(4<B;ANZ#We=*'4c1rTVZOC:f(UoNA^12aD]&%Kf7p1-?)]KYaX]^,k[<#;:*.#&eMaMSFPZJhQQOFBHW)#l-*4IE]?;Rg*'gWAs*aJ5o$40d-EB,sTnGGb)SFDp\1lf,L)oYuI!^)+BK]U2RHG`2bG;p)si?4?dK>GbE]#G`9i?#9+O(c8%3D;X:/'dRtrOu6+5)Wb]95dX0?9IE7ne,>U)9ZR1`V(j</7&Y^:`*c`CKA'f;+k#koVFO$5+8ZMEN"d_Ve.$\6)0&%"0fN,&keMGb1Zd!#2X8t5<`!$JgM,6kJ,]0+?sGn7rA1M/CD.\YsFr>@h%[r?^3RQ>;*sNo>\1\9djHbi*Y]Hh.CeR+r+p@i:Pe1e#_KqZf;R=Q;sK^`kd[<@B[F-q5HB+:=)O;&PR2;MSY6`XIE[5>k0uZ\H'"g#X#,g/C*2+b2V.M@4&u$VH^2&90DNE,EHGJqOba0T]d@VLBWZYM2fXr#BgP^WI75?:*[_.)/(FdnbbJ&YP;*&-jif/GM`*^BOj@Xje%KlQ%+#9oQ6k-p]`?/W>#bF]38j/AjuFu9:f-!bV&^7HP`E>h:tg7B"->#Z,")e]dqVMO%2^T9_?Ld^1cRaBN,jU3k9q*.m/n$<#f`>*k>CiHJA7)WYA&[&Y$C:iW_W##u:I%cYMh8~>endstream
+endobj
+xref
+0 12
+0000000000 65535 f 
+0000000073 00000 n 
+0000000124 00000 n 
+0000000231 00000 n 
+0000000343 00000 n 
+0000000420 00000 n 
+0000000624 00000 n 
+0000000828 00000 n 
+0000000896 00000 n 
+0000001179 00000 n 
+0000001244 00000 n 
+0000002526 00000 n 
+trailer
+<<
+/ID 
+[<56672be3a0831c190bcf50065015ed20><56672be3a0831c190bcf50065015ed20>]
+% ReportLab generated PDF document -- digest (http://www.reportlab.com)
+
+/Info 8 0 R
+/Root 7 0 R
+/Size 12
+>>
+startxref
+3855
+%%EOF
+
+
+===== Modular_Math_Formulas_v3.pdf =====
+%PDF-1.4
+%“Œ‹ž ReportLab Generated PDF document http://www.reportlab.com
+1 0 obj
+<<
+/F1 2 0 R /F2 3 0 R /F3 4 0 R /F4 5 0 R
+>>
+endobj
+2 0 obj
+<<
+/BaseFont /Helvetica /Encoding /WinAnsiEncoding /Name /F1 /Subtype /Type1 /Type /Font
+>>
+endobj
+3 0 obj
+<<
+/BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding /Name /F2 /Subtype /Type1 /Type /Font
+>>
+endobj
+4 0 obj
+<<
+/BaseFont /Symbol /Name /F3 /Subtype /Type1 /Type /Font
+>>
+endobj
+5 0 obj
+<<
+/BaseFont /ZapfDingbats /Name /F4 /Subtype /Type1 /Type /Font
+>>
+endobj
+6 0 obj
+<<
+/Contents 12 0 R /MediaBox [ 0 0 595.2756 841.8898 ] /Parent 11 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+7 0 obj
+<<
+/Contents 13 0 R /MediaBox [ 0 0 595.2756 841.8898 ] /Parent 11 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+8 0 obj
+<<
+/Contents 14 0 R /MediaBox [ 0 0 595.2756 841.8898 ] /Parent 11 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+9 0 obj
+<<
+/PageMode /UseNone /Pages 11 0 R /Type /Catalog
+>>
+endobj
+10 0 obj
+<<
+/Author (\(anonymous\)) /CreationDate (D:20250907003022+00'00') /Creator (\(unspecified\)) /Keywords () /ModDate (D:20250907003022+00'00') /Producer (ReportLab PDF Library - www.reportlab.com) 
+  /Subject (\(unspecified\)) /Title (\(anonymous\)) /Trapped /False
+>>
+endobj
+11 0 obj
+<<
+/Count 3 /Kids [ 6 0 R 7 0 R 8 0 R ] /Type /Pages
+>>
+endobj
+12 0 obj
+<<
+/Filter [ /ASCII85Decode /FlateDecode ] /Length 1592
+>>
+stream
+Gatm<>ArL\'RoMS3);'YTn#kI<T7FJ.\i+eZeZYq%CIsJgNlG]9O_2X_LLHQ4/&M*QqLJB5dk1c45[T<5RSZCIf0Q1EX^2)!CC4B&&`7.0YW:Bn]@sJP/#]96]VWorViIN4)b50ONf5]$f_L@e_?N;$Daj9C7-GtJD+"hEN''KiHlQg6^GUP<2din/)eBan7*M6Gm`S%*iI1[)#k'*1T6;m1r=GmR+2+-!iC2r3@u!YgE63,j(jbd^3<6+*dIk$^pPbHVaW;t4i9Tn$WHAQ#$_MWdNr-MP#rVWP_^V>)8IQA:k8SgjFZ(P[!,uQ((4lQA[!"\CD5.^+W1\P_/s]);&hh(6_)PFAq[L_E',^A`EQ)"hJR4Si&Q#>3Icqld7&CjU4]J5c5`4s%d&T>Wo1u.Li40X"o*)%bS:A+RtC_biV,nqN#rK'Gp_SSUcdVip`]MlB.;+cJ[RUN51&P:NqEG,J.YR%VC%PU%'G:^+h-m^,NB&`$[e.64O(AD@]*.]9+0e^`'#@g1.Y:TEJ*5d%oCC@A9'^VF\n,=IIq\\9?miaBb3-lm<9r+*mIdCI1'IWC0E'C46Ue!h5iZ5\XJ:928\G<UFl*[UV?aF1?,D[BXC.RG,;F.)[=7UQg63N2D`Z3N0]K&P1;5)XnsQ*Q=^D@E,:9%SPI)fd<`hm<W\g37W[g`7+$[W8$NrCn9M]>*$8iG&nr<%l@kJnm^5]4T,kX7_M,Df=^>b]?a#tnF=SZ6)e38Ir2cIT5['=TDMZ,Y9O8$/(tZdl7-diF=5W27&kOL!bR72dm]l1?(q!A@`74MN`g`#JhRt0b\OQ$2-nB$"n/ni>.<L%IFRiAR1?!\J@15!4!so8b+\m#jp"4,0?J/<Q2NZ*3JQu4^jDp"g8\6MZ[_$kt6;+%\[fJGAi@k8sh^3a4P,BiFs'Y5'\Csmj-t")%Rj2kKS7;?NnU>:p`hk]a=iT9,[_5;AqDDmDCPB4,Q$J)'T2;0+>,b!;Mn1_-Otp#tOji,hJ9^2&YIO]=;m'sJ;_;Ta?U9(CKo%K(-*OR._me,O7q!11JjKQOkVNN5&4l6-mE=ikX>MRYf4.q9"#oLkI:os.=5%Lh.I_-+B8,\T`57UKC/]@E2YS;5M.qPCnK\1-Tl+Kq5]fgO[\LrSV>k9p\eW%7DRC[ur$'I"CGUf2ggn!hakMt>4C_Gq=<#o3U"b04^QS!aajFWML$5X48DT#:34)tJF_EV0gbUn>S.jKq/VjL16.<Z4&NB!BF$@c=4g_:KS?Ii3=c](NFt6R42fkfP_^^,nW.K+5lhNc@qoJQ&@Wj5HlBdSg$q<>oE?KX-o\en,A<iu0mZpk>fJ6CSs%H0>?Urej&abmuDNRH:DJgNHq__`f>q$'X9Xq8ZhfRGf&*>LFWCi/N@f[61VD)Jc1am[uUKK^FNkNQ-]s7]o%!DliOtI4`%[>`Z0diW"IL[H/F.;=o6@+p(Or'#PVWUOT4OaS(qDTol4.+U8?=-F_glQD62gZ8-A_^,CAt_2Y$Z_E#+@meb^=].f1NRtYP94#m/'hcmL1LSh_^pP=i*h`#oYXQ<q)q)BU()=RDPZrk0KAkEGfQ1;~>endstream
+endobj
+13 0 obj
+<<
+/Filter [ /ASCII85Decode /FlateDecode ] /Length 1595
+>>
+stream
+Gatm<gMZ"A&:Ml+<8JJ/)W/?GLkcF$X@<Op-F)]ALC%]h".e@fd^G>ng&1_JgZB+_2ZmA0+cK]4Vs^I!JVbI!r=2/E9-<GI$S37p.9Nb3Jq!r2r3OF".t>u_J`eqM<ib%C$+s]D2rs<6AZa3s-lCr@2BJ#&ePZWPm&":.jj7^D^I/\FD;1*/l\+hr`N)emhh,99g:lP/]gga<W6rmI,'YooBVuc(QKNf`Vih+0@8RGla)jd^">@.t6qK(fGYV]j05psP'm*k"9SO9[)\5/I&Qsm;TL!\=3$f4:@U_>FBKi=U#QeBG6t5[S`X<,i3o.UTs$EBtANCc8HafH8F)onO`Yrknn<lru%k)gN9M!A1fAUF%9)/daP+H"K4*u0gcd)"Gah\gKPu(-s6uU=AlH)H1N&"IP6`_>rYU;?&&WF+e\;*5F1#hM@'?qHb,TK_h@_.1"&UajT-ODgk(-q.@W5:!LUL7tdIAY?JVILA'M.rNN-VX\hF%hgS_@6q\itJd7b>1YI,.-3dYD:YAQ1FS7.Z.rm3Q62Q`7DXA0hdO=(=-D\R!`LZ9H]XaKiHmW_Y4PP:'5urRIDs#lN5RlVZm6VhM"6Y]i_*IN'Ca3UVk5>rKg]``SG3oEdOD"-TV09JQkj9Wi<tfeC6$[K*18H?;\!eXM^6u.,!>Z2Xi,V1o>4<Ajg+NW%>\/j&HTHI4rM0^\<c"NTh)TAiL'V(=O5j[`c\`#m\pb\L(S)C2)FE]9X4RX445cU+u.S*P(V\i<=rqG4T326N&ok:E+7)Bct9(Jgh;0j4jTRrtF@Q]@Zp0J(ki8;^(,6CDqqNI_&jbq:Wdu$k1kkr(ri26=e"=#,d?/(ka.Ek#>'r0E_.haUmQ9`Eba9"]>;p+QV8%kV`foM<g\U9=ui0fqhS^@Y3J1T*9V_b#GX%%MVPr9"3"$G%nu\lhCo%kF,uX`j##CelF,t67OG2-#5=p+H+4)H?@S;^R,:T=;`X;&E=&4^K0KZd7;Z+n[PO;XF_Af8*:8X>t@qbk/g#fD.9KMLi<CH<&-2U67>A(qJ7]B#m-E6^Bh%I,RXVr&6qkoWI>WDN$H"cnGVofs'\^NB=?ibU*[j4;-A[F"JQI6NT/O^Yd8*;8$DjMiU-E.dNA"mri'p@gHHXY?'IKqlgS^Aar[)N4V<\lce==RK/mS*$.V>HbAkGVYek/gmHt$?LH7I_Se$bA=[A1EppiReluGM`RR@0ZFEYLoNWj.IjDiM@RZ!BZ*,pU9MMHR,CA/#<IWph4\>':?NN>:9@JD(I_/Yc(XSjb)PjAE$SOR%=R&@[\ED/6VP5qLg^AI.;=QKfq+8\=3S1QhlN#\AUo"X'e.la[Eb<&sojO'\W'@g8gNl5e7l$qEh$C48j6YTF+UJ+bIXOeLq0s"hnB:V`_*4'>Zmn"@,PO_M`;EqQKb-<nd9^,MOE&t&aV+A7T0UXsU,sa(-qh<f)dJN`[`9psrLqRMrQ_So@I,ESP8PUoe_25c)JC.%7`b/GV*4=<J`A<bjdWdAkOkT!H,p>ea+GD14TQfG^%*U,if.7LQ'pB>W#EjnG@mUqCpAXu$a-Ke@?]__*=MC?Bfma/XE&7~>endstream
+endobj
+14 0 obj
+<<
+/Filter [ /ASCII85Decode /FlateDecode ] /Length 374
+>>
+stream
+GatUm5u5?_&;BTO(%8)O[BkB80j[Q;8Irb!(D*l1Mq$H4/rO14s1?1W+n5U\As,_tBBQsHG6eccq4*_cXi+dC+9B"U%Di/,*QBjZ&#d/Z-\r#F0M+_?:N.QL%Jpe-/03erY[f3!,$lbP$_?sG,/h082W%rU>?=95QReD(jrEq,ZEs:oE;]DCnOYsmpb@*UrIjp7;&gg_/DbEBQ%dcAelloGNHATJ"%Ac&nSKnW7MfJME`PVM<7FF+kk#r:@<un8Bmf-g1#/NoR5.VM/PU-odoJo(lDM0T8e^mt6dl%V\UQIt>SfPNY-c`@a>\&gNFLHTEIk2@f?3U";#3%Uqi`Tr7aBV1rk_QM*;#kIHSqN"q'85p"/0%qN;~>endstream
+endobj
+xref
+0 15
+0000000000 65535 f 
+0000000073 00000 n 
+0000000134 00000 n 
+0000000241 00000 n 
+0000000353 00000 n 
+0000000430 00000 n 
+0000000513 00000 n 
+0000000718 00000 n 
+0000000923 00000 n 
+0000001128 00000 n 
+0000001197 00000 n 
+0000001481 00000 n 
+0000001553 00000 n 
+0000003237 00000 n 
+0000004924 00000 n 
+trailer
+<<
+/ID 
+[<a935e4cbeaca16b977f5f8ea29ae702e><a935e4cbeaca16b977f5f8ea29ae702e>]
+% ReportLab generated PDF document -- digest (http://www.reportlab.com)
+
+/Info 10 0 R
+/Root 9 0 R
+/Size 15
+>>
+startxref
+5389
+%%EOF
+
+
+===== power_tower.cpp =====
+#include<bits/stdc++.h>
+using namespace std;
+
+const int N = 1e5 + 9;
+using ll = long long;
+
+map<ll, ll> mp;
+ll phi(ll n) {
+  if (mp.count(n)) return mp[n];
+  ll ans = n, m = n;
+  for (ll i = 2; i * i <= m; i++) {
+    if (m % i == 0) {
+      while (m % i == 0) m /= i;
+      ans = ans / i * (i - 1);
+    }
+  }
+  if (m > 1) ans = ans / m * (m - 1);
+  return mp[n] = ans;
+}
+inline ll MOD(ll x, ll m) {
+  if (x < m) return x;
+  return x % m + m;
+}
+ll power(ll n, ll k, ll mod) {
+  ll ans = MOD(1, mod);
+  while (k) {
+    if (k & 1) ans = MOD(ans * n, mod);
+    n = MOD(n * n, mod);
+    k >>= 1;
+  }
+  return ans;
+}
+int a[N];
+// if x >= log2(m), then a^x = a^(MOD(x, phi(m))) % m
+ll yo(ll l, ll r, ll m) {
+  if (l == r) return MOD(a[l], m);
+  if (m == 1) return 1;
+  return power(a[l], yo(l + 1, r, phi(m)), m); 
+}
+int32_t main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  int n, m; cin >> n >> m;
+  for (int i = 1; i <= n; i++) {
+    cin >> a[i];
+  }
+  int q; cin >> q;
+  while (q--) {
+    int l, r; cin >> l >> r;
+    cout << yo(l, r, m) % m << '\n';
+  }
+  return 0;
+}
+// https://codeforces.com/contest/906/problem/D
+
+===== Prime_check.cpp =====
+bool isPrime(ll n)
+{
+    if (n <= 1)
+        return false;
+    if (n <= 3)
+        return true;
+    if (n % 2 == 0 || n % 3 == 0)
+        return false;
+    for (int i = 5; i * i <= n; i = i + 6)
+        if (n % i == 0 || n % (i + 2) == 0)
+            return false;
+    return true;
+}
+
+===== prime_factorization.cpp =====
+#include<bits/stdc++.h>
+using namespace std;    
+using ll = long long;
+using vpll = vector<pair<ll, ll>> ;
+
+// Function to find all prime factors of a number
+vpll prime_factorization(int n)
+{ // O(sqrt(n))
+    vpll factors;
+    for (int i = 2; i * i <= n; i++)
+    {
+        if (n % i == 0)
+        {
+            ll cnt = 0;
+            while (n % i == 0)
+            {
+                cnt++;
+                n /= i;
+            }
+            factors.push_back({i, cnt});
+        }
+    }
+    if (n > 1)
+    {
+        factors.push_back({n, 1});
+    }
+    return factors;
+}
+
+// 2. Sieve-Based Factorization (Fast for Many Queries)
+// O(n log log n) for preprocessing, O(log n) for each query
+const int N = 1e6 + 5;
+int spf[N]; // spf[i] = smallest prime factor of i
+
+void compute_spf()
+{
+    for (int i = 2; i < N; i++)
+        spf[i] = i;
+    for (int i = 2; i * i < N; i++)
+    {
+        if (spf[i] == i)
+        {
+            for (int j = i * i; j < N; j += i)
+                if (spf[j] == j)
+                    spf[j] = i;
+        }
+    }
+}
+
+vector<pair<int, int>> factorize(int x)
+{
+    vector<pair<int, int>> res;
+    while (x != 1)
+    {
+        int p = spf[x], cnt = 0;
+        while (x % p == 0)
+            x /= p, cnt++;
+        res.emplace_back(p, cnt);
+    }
+    return res;
+}
+
+===== sieve.cpp =====
+// const ll N = 1e6 + 10;
+// vector<bool> is_prime(N + 10, true);
+// vll pf(N + 10);
+
+// void sieve()
+// {
+//     is_prime[0] = is_prime[1] = false;
+//     for (int i = 2; i <= N; i++)
+//     {
+//         if (is_prime[i] && (long long)i * i <= N)
+//         {
+//             for (int j = i * i; j <= N; j += i)
+//                 is_prime[j] = false;
+//         }
+//     }
+// }
+

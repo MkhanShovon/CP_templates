@@ -1,0 +1,916 @@
+﻿
+===== kmp.cpp =====
+vll kmp(string s){
+    ll n=s.size();
+    
+    vll lps(n,0);
+
+    fls(i,1,n-1){
+        ll j=lps[i-1];
+        while(j>0 && s[i]!=s[j]){
+            j=lps[j-1];
+        }
+        if(s[i]==s[j]){
+            j++;
+        }
+        
+        lps[i]=j;
+    }
+    return lps;
+}
+
+===== manacher.cpp =====
+#include <iostream> 
+#include <vector> 
+#include <random>
+#include <chrono>
+#include <string>
+#include <unordered_map>
+#include <map>
+#include <algorithm>
+  
+using namespace std;
+
+// ==============================
+// I/O speedups
+// ==============================
+inline void FastIO() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(nullptr);
+    cout.tie(nullptr);
+}
+
+// ==============================
+// Type aliases
+// ==============================
+using ll  = long long;
+using lld = long double;
+using ull = unsigned long long;
+
+// ==============================
+// Constants (generic template)
+// ==============================
+const lld pi  = 3.141592653589793238L;
+const ll  INF = LLONG_MAX;
+const ll  mod = 1e9 + 7;
+
+// ==============================
+// Typedefs (generic template)
+// ==============================
+using pll  = pair<ll, ll>;
+using vll  = vector<ll>;
+using vpll = vector<pll>;
+using vs   = vector<string>;
+using umll = unordered_map<ll, ll>;
+using mll  = map<ll, ll>;
+
+// ==============================
+// Macros (loop helpers, etc.)
+// ==============================
+// fl(i, n):          for i = 0..n-1
+// fls(i, m, n):     for i = m..n
+// rl(i, m, n):      for i = n..m  (descending)
+#define ff first
+#define ss second
+#define pb push_back
+#define mp make_pair
+#define fl(i, n)        for (ll i = 0; i < (n); i++)
+#define fls(i, m, n)    for (ll i = (m); i <= (n); i++)
+#define rl(i, m, n)     for (ll i = (n); i >= (m); i--)
+#define py cout << "YES\n";
+#define pm cout << "-1\n";
+#define pn cout << "NO\n";
+#define vr(v) (v).begin(), (v).end()
+#define rv(v) (v).rbegin(), (v).rend()
+#define edl '\n'
+#define len(v) (v).size()
+#define nl  cout << edl;
+
+// ==============================
+// Stream operators (generic template)
+// ==============================
+template <typename T1, typename T2>
+istream& operator>>(istream& is, pair<T1, T2>& p) {
+    return (is >> p.first >> p.second);
+}
+
+template <typename T>
+istream& operator>>(istream& is, vector<T>& v) {
+    for (auto& it : v) is >> it;
+    return is;
+}
+
+template <typename T1, typename T2>
+ostream& operator<<(ostream& os, const pair<T1, T2>& p) {
+    return (os << p.first << " " << p.second);
+}
+
+template <typename T>
+ostream& operator<<(ostream& os, const vector<T>& c) {
+    for (auto& it : c) cout << it << " ";
+    return os;
+}
+
+// ==============================
+// Utilities (generic template)
+// ==============================
+#define print(x) cout << x << '\n'
+
+template <typename T>
+ll sumvec(vector<T> v) {
+    ll s = 0;
+    fl(i, (ll)v.size()) s += v[i];
+    return s;
+}
+
+// RNG (unused by the solution; kept as part of template)
+mt19937 rng;
+int getRandomNumber(int l, int r) {
+    uniform_int_distribution<int> dist(l, r);
+    return dist(rng);
+}
+
+void preSolve() {
+    rng = mt19937(chrono::steady_clock::now().time_since_epoch().count());
+}
+
+// =======================================================
+// MANACHER (sentinel version) â†’ radii on transformed t
+// t = "#s0#s1#...#s{n-1}#" so all palindromes are odd in t.
+// p[i] = radius in t (how far we match around center i).
+//
+// Time: O(n), Space: O(n)
+// =======================================================
+vll manacher(const string& s) {
+    ll n = (ll)s.size();
+
+    // Build sentinel string t: between every two chars (and ends) put '#'
+    // This unifies odd/even palindromes into a single "odd" case on t.
+    string t = "#";
+    for (char c : s) t += c + string("#");
+    ll m = (ll)t.size();  // m = 2*n + 1
+
+    vll p(m, 0);          // p[i] = radius on t (in chars of t)
+    ll c = 0, r = 0;      // current rightmost palindrome center c, right boundary r (inclusive)
+
+    fl(i, m) {
+        // Mirror index j of i across center c: j = 2*c - i
+        ll mirror = 2 * c - i;
+
+        // If i is inside the current rightmost palindrome (i < r),
+        // we can seed p[i] using symmetry, capped by the boundary.
+        if (i < r) p[i] = min(r - i, p[mirror]);
+
+        // Greedy expansion around i:
+        // Try to match the next pair outside the current radius.
+        while (i - p[i] - 1 >= 0 && i + p[i] + 1 < m &&
+               t[i - p[i] - 1] == t[i + p[i] + 1]) {
+            p[i]++;
+        }
+
+        // If this palindrome extends beyond r, update the rightmost window.
+        if (i + p[i] > r) {
+            c = i;
+            r = i + p[i];
+        }
+    }
+    return p;
+}
+
+// ======================================================================
+// Convert Manacher radii â†’ end_counts[j] = # palindromic substrings that
+// end at index j in the ORIGINAL string s.
+//
+// Idea:
+//  â€¢ For each center i in the transformed t and its radius p[i], map the
+//    possible palindromes in s and collect the range of their END indices.
+//  â€¢ Odd center in t (i odd)  â†’ center on s[cc], ends âˆˆ [cc, cc + max_h]
+//  â€¢ Even center in t (i even)â†’ center between s[ee-1] and s[ee],
+//    ends âˆˆ [ee, ee + num - 1]
+//  â€¢ We add these ranges to a difference array 'diff' and prefix-sum to get
+//    per-position end_counts.
+// Time: O(n), Space: O(n)
+// ======================================================================
+vll get_end_counts(const string& s) {
+    ll n = (ll)s.size();
+    vll p = manacher(s);           // radii on sentinel string t
+    ll m = (ll)p.size();           // m = 2*n + 1
+
+    // Difference array for range adds over end indices 0..n-1.
+    // Size n+1 to allow writing diff[R+1] -= 1 safely.
+    vll diff(n + 1, 0);
+
+    fl(i, m) {
+        if (p[i] == 0) continue;   // even centers often have 0; nothing to add
+
+        if (i % 2 == 1) {
+            // ----- ODD center in t â†’ center on a real character in s -----
+            // t index: i = 2*cc + 1  â‡’  cc = (i-1)/2
+            // In s, for half-length h = 0..max_h, palindrome s[cc-h..cc+h] ends at (cc + h).
+            ll cc     = (i - 1) / 2;   // center in s
+            ll max_h  = p[i] / 2;      // maximum half-length in s
+            ll low    = cc;            // end indices span [cc, cc + max_h]
+            ll high   = cc + max_h;
+
+            // (Safety clamps; with correct mapping high should be < n anyway)
+            if (high >= n) high = n - 1;
+            if (low > high) continue;
+
+            // Range add +1 on [low..high]
+            diff[low] += 1;
+            if (high + 1 <= n) diff[high + 1] -= 1;
+
+        } else {
+            // ----- EVEN center in t â†’ center between two characters in s -----
+            // t index: i = 2*ee      â‡’  ee = i/2 is the index of the *right* char of the gap.
+            // For half-length h = 1..num, palindrome s[ee-h..ee+h-1] ends at (ee + h - 1).
+            ll ee   = i / 2;        // right index of the gap in s
+            ll num  = p[i] / 2;     // maximum half-length (number of pairs)
+            if (num == 0) continue; // no even palindromes here
+
+            ll low  = ee;               // end indices span [ee, ee + num - 1]
+            ll high = ee + num - 1;
+
+            if (high >= n) high = n - 1;
+            if (low > high) continue;
+
+            // Range add +1 on [low..high]
+            diff[low] += 1;
+            if (high + 1 <= n) diff[high + 1] -= 1;
+        }
+    }
+
+    // Prefix-sum the difference array to get end_counts[j]:
+    // end_counts[j] = number of intervals [L,R] covering j.
+    vll end_counts(n, 0);
+    ll current = 0;
+    fl(j, n) {
+        current += diff[j];
+        end_counts[j] = current;
+    }
+    return end_counts;
+}
+
+// ======================================================================
+// Count disjoint palindrome substring pairs.
+//
+// Definition: (x, y) is counted if both x and y are palindromes and
+// they are disjoint: either x ends before y starts or y ends before x starts.
+// We count each unordered pair exactly once by enforcing "x entirely left of y".
+//
+// Method:
+//  1) end_counts[i]   = # pal substrings ending at i.
+//  2) start_counts[j] = # pal substrings starting at j.
+//     We get start_counts by computing end_counts on reverse(s) and mapping:
+//       start_counts[k] = end_counts_r[n-1-k]
+//     (a substring starting at k in s corresponds to a substring ending at
+//      n-1-k in reverse(s).)
+//  3) rights[i] = sum_{j=i}^{n-1} start_counts[j]  (suffix sums)
+//  4) Answer = sum_{i=0}^{n-2} end_counts[i] * rights[i+1]
+//     (choose a split between i and i+1: left pal ends at i, right pal starts > i)
+//
+// Time: O(n), Space: O(n)
+// ======================================================================
+ll count_disjoint_pairs(const string& s) {
+    ll n = (ll)s.size();
+    if (n == 0) return 0;
+
+    // # pal substrings ending at each index in s
+    vll end_counts = get_end_counts(s);
+
+    // Build start_counts via reverse(s) trick
+    string sr = s;
+    reverse(sr.begin(), sr.end());
+    vll end_counts_r = get_end_counts(sr);
+
+    vll start_counts(n, 0);
+    // Map: start at k in s  <=>  end at (n-1-k) in reverse(s)
+    fl(k, n) {
+        start_counts[k] = end_counts_r[n - 1 - k];
+    }
+
+    // rights[i] = number of pal substrings starting at positions >= i
+    vll rights(n + 1, 0);
+    rights[n] = 0;
+    rl(i, 0, n - 1) {
+        rights[i] = rights[i + 1] + start_counts[i];
+    }
+
+    // Count pairs with the split between i and i+1:
+    // take any left-pal that ends at i and any right-pal that starts at >= i+1
+    ll ans = 0;
+    fl(i, n - 1) {
+        ans += end_counts[i] * rights[i + 1];
+    }
+    return ans;
+}
+
+// ======================================================================
+// Solver: reads multiple test cases (one string per line) until EOF.
+// Skips blank lines. Prints the count per line.
+// ======================================================================
+void solve() {
+    string s;
+    while (getline(cin, s)) {
+        if (s.empty()) continue;           // ignore blank lines
+        cout << count_disjoint_pairs(s) << '\n';
+    }
+}
+
+// ======================================================================
+// main
+// ======================================================================
+signed main() {
+    FastIO();
+    preSolve();
+
+    ll t = 1;   // We read until EOF inside solve(), so t=1 is fine.
+    fl(i, t) {
+        solve();
+    }
+    return 0;
+}
+
+/*
+===========================
+Notes & Correctness Summary
+===========================
+
+â€¢ Manacher (sentinel version) runs in O(n) and gives p[i] = radius at each t-index.
+  Mapping to s:
+    - i odd  (center on s[cc]) â†’ ends âˆˆ [cc, cc + floor(p[i]/2)]
+    - i even (center between s[ee-1] and s[ee]) â†’ ends âˆˆ [ee, ee + floor(p[i]/2) - 1]
+
+â€¢ get_end_counts(s):
+    - Adds +1 over those end-index ranges using a difference array (diff),
+      then prefix-sums to get the exact number of pal substrings ending at each index.
+
+â€¢ start_counts:
+    - Use reverse(s) and the fact that "start at k in s" corresponds to
+      "end at n-1-k in reverse(s)".
+
+â€¢ Counting disjoint pairs:
+    - For each split between i and i+1, multiply:
+        (# pal ends at i) * (# pal starts at positions >= i+1)
+      Sum over i = 0..n-2.
+    - This counts each unordered pair exactly once with the left one before the right one.
+
+â€¢ Complexity:
+    - Manacher: O(n)
+    - Range adds + prefix sum: O(n)
+    - Reverse, mapping, suffix sums, final sum: O(n)
+    - Total per test: O(n) time, O(n) memory.
+
+â€¢ Range of the answer:
+    - In worst-case strings like "aaaa...a", the number of palindromic substrings is Î˜(n^2),
+      and the number of disjoint pairs is Î˜(n^3). For n â‰¤ 1e5, this fits in signed 64-bit
+      (since 1e15 < 2^63), so 'long long' is sufficient.
+*/
+
+
+===== manacher2.cpp =====
+#include <bits/stdc++.h>
+using namespace std;
+
+// d1: odd pal radii, d2: even pal radii
+// Time: O(n), Space: O(n)
+pair<vector<int>, vector<int>> manacher(const string &s) {
+    int n = (int)s.size();
+    vector<int> d1(n), d2(n);
+
+    // ---- odd ----
+    // current rightmost palindrome is [l, r] (inclusive)
+    for (int i = 0, l = 0, r = -1; i < n; i++) {
+        int k = 1;
+        if (i <= r) k = min(d1[l + r - i], r - i + 1);
+        while (i - k >= 0 && i + k < n && s[i - k] == s[i + k]) k++;
+        d1[i] = k;
+        if (i + k - 1 > r) { l = i - (k - 1); r = i + (k - 1); }
+    }
+
+    // ---- even ----
+    for (int i = 0, l = 0, r = -1; i < n; i++) {
+        int k = 0;
+        if (i <= r) k = min(d2[l + r - i + 1], r - i + 1);
+        while (i - k - 1 >= 0 && i + k < n && s[i - k - 1] == s[i + k]) k++;
+        d2[i] = k;
+        if (i + k - 1 > r) { l = i - k; r = i + k - 1; }
+    }
+
+    return {d1, d2};
+}
+
+string longest_palindrome(const string &s) {
+    auto [d1, d2] = manacher(s);
+    int n = (int)s.size();
+
+    int bestLen = 0, bestL = 0;
+
+    // odd
+    for (int i = 0; i < n; i++) {
+        int len = 2 * d1[i] - 1;
+        if (len > bestLen) {
+            bestLen = len;
+            bestL = i - (d1[i] - 1);
+        }
+    }
+    // even
+    for (int i = 0; i < n; i++) {
+        int len = 2 * d2[i];
+        if (len > bestLen) {
+            bestLen = len;
+            bestL = i - d2[i];
+        }
+    }
+    return s.substr(bestL, bestLen);
+}
+
+long long count_palindromes(const string &s) {
+    auto [d1, d2] = manacher(s);
+    long long cnt = 0;
+    for (int v : d1) cnt += v;     // odd centers
+    for (int v : d2) cnt += v;     // even centers
+    return cnt;
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    string s; 
+    if (!(cin >> s)) return 0;
+
+    auto [d1, d2] = manacher(s);
+    cout << "Longest: " << longest_palindrome(s) << "\n";
+    cout << "Total pal substrings: " << count_palindromes(s) << "\n";
+
+    // Example: print max odd/even around each center (as lengths)
+    // Odd length at i:
+    //   len_odd[i] = 2*d1[i]-1
+    // Even length centered between i-1 and i:
+    //   len_even[i] = 2*d2[i]
+    return 0;
+}
+
+
+===== string_hashing.cpp =====
+#include <bits/stdc++.h>
+using namespace std;
+
+const int N = 1e6 + 9;
+
+int power(long long n, long long k, const int mod)
+{
+    int ans = 1 % mod;
+    n %= mod;
+    if (n < 0)
+        n += mod;
+    while (k)
+    {
+        if (k & 1)
+            ans = (long long)ans * n % mod;
+        n = (long long)n * n % mod;
+        k >>= 1;
+    }
+    return ans;
+}
+
+const int MOD1 = 127657753, MOD2 = 987654319;
+const int p1 = 137, p2 = 277;
+int ip1, ip2;
+pair<int, int> pw[N], ipw[N];
+void prec()
+{
+    pw[0] = {1, 1};
+    for (int i = 1; i < N; i++)
+    {
+        pw[i].first = 1LL * pw[i - 1].first * p1 % MOD1;
+        pw[i].second = 1LL * pw[i - 1].second * p2 % MOD2;
+    }
+    ip1 = power(p1, MOD1 - 2, MOD1);
+    ip2 = power(p2, MOD2 - 2, MOD2);
+    ipw[0] = {1, 1};
+    for (int i = 1; i < N; i++)
+    {
+        ipw[i].first = 1LL * ipw[i - 1].first * ip1 % MOD1;
+        ipw[i].second = 1LL * ipw[i - 1].second * ip2 % MOD2;
+    }
+}
+struct Hashing
+{
+    int n;
+    string s;                  // 0 - indexed
+    vector<pair<int, int>> hs; // 1 - indexed
+    Hashing() {}
+    Hashing(string _s)
+    {
+        n = _s.size();
+        s = _s;
+        hs.emplace_back(0, 0);
+        for (int i = 0; i < n; i++)
+        {
+            pair<int, int> p;
+            p.first = (hs[i].first + 1LL * pw[i].first * s[i] % MOD1) % MOD1;
+            p.second = (hs[i].second + 1LL * pw[i].second * s[i] % MOD2) % MOD2;
+            hs.push_back(p);
+        }
+    }
+    pair<int, int> get_hash(int l, int r)
+    { // 1 - indexed
+        assert(1 <= l && l <= r && r <= n);
+        pair<int, int> ans;
+        ans.first = (hs[r].first - hs[l - 1].first + MOD1) * 1LL * ipw[l - 1].first % MOD1;
+        ans.second = (hs[r].second - hs[l - 1].second + MOD2) * 1LL * ipw[l - 1].second % MOD2;
+        return ans;
+    }
+    pair<int, int> get_hash()
+    {
+        return get_hash(1, n);
+    }
+};
+int32_t main()
+{
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    prec();
+    int n;
+    while (cin >> n)
+    {
+        string s, p;
+        cin >> p >> s;
+        Hashing h(s);
+        auto hs = Hashing(p).get_hash();
+        for (int i = 1; i + n - 1 <= s.size(); i++)
+        {
+            if (h.get_hash(i, i + n - 1) == hs)
+                cout << i - 1 << '\n';
+        }
+        cout << '\n';
+    }
+    return 0;
+}
+// https://www.spoj.com/problems/NHAY/
+
+===== string_hashing_pro.cpp =====
+#include <iostream>
+#include <bits/stdc++.h>
+// #include <sys/resource.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+using namespace std;
+// using namespace chrono;
+using namespace __gnu_pbds;
+template <typename T>
+using oset = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+template <typename T>
+using omset = tree<T, null_type, less_equal<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+template <typename T, typename R>
+using o_map = tree<T, R, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+// Pragmas
+#pragma GCC optimize("O3,unroll-loops")
+// #ifndef LOCAL_PROJECT
+// #pragma GCC target("avx2")
+// #endif
+// #pragma GCC optimize("Ofast")
+
+// Speed
+inline void FastIO()
+{
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    cout.tie(NULL);
+}
+
+// Aliases
+using ll = long long;
+using lld = long double;
+using ull = unsigned long long;
+
+// Constants
+const lld pi = 3.141592653589793238;
+const ll INF = LONG_LONG_MAX;
+const ll mod = 1e9 + 7;
+
+// TypeDEf
+typedef pair<ll, ll> pll;
+typedef vector<ll> vll;
+typedef vector<pll> vpll;
+typedef vector<string> vs;
+typedef unordered_map<ll, ll> umll;
+typedef map<ll, ll> mll;
+
+// Macros
+#define ff first
+#define ss second
+#define pb push_back
+#define mp make_pair
+#define fl(i, n) for (ll i = 0; i < n; i++)
+#define fls(i, m, n) for (ll i = m; i <= n; i++)
+#define rl(i, m, n) for (ll i = n; i >= m; i--)
+#define py cout << "YES\n";
+#define pm cout << "-1\n";
+#define pn cout << "NO\n";
+#define vr(v) v.begin(), v.end()
+#define rv(v) v.rbegin(), v.rend()
+#define edl '\n'
+#define len(v) v.size()
+#define nl cout << edl;
+
+// Debug
+void __print(int x) { cerr << x; }
+void __print(long x) { cerr << x; }
+void __print(long long x) { cerr << x; }
+void __print(unsigned x) { cerr << x; }
+void __print(unsigned long x) { cerr << x; }
+void __print(unsigned long long x) { cerr << x; }
+void __print(float x) { cerr << x; }
+void __print(double x) { cerr << x; }
+void __print(long double x) { cerr << x; }
+void __print(char x) { cerr << '\'' << x << '\''; }
+void __print(const char *x) { cerr << '"' << x << '"'; }
+void __print(const string &x) { cerr << '"' << x << '"'; }
+void __print(bool x) { cerr << (x ? "true" : "false"); }
+
+template <typename T, typename V>
+void __print(const pair<T, V> &x)
+{
+    cerr << '{';
+    __print(x.first);
+    cerr << ',';
+    __print(x.second);
+    cerr << '}';
+}
+template <typename T>
+void __print(const T &x)
+{
+    int f = 0;
+    cerr << '{';
+    for (auto &i : x)
+        cerr << (f++ ? "," : ""), __print(i);
+    cerr << "}";
+}
+void _print() { cerr << "]\n"; }
+template <typename T, typename... V>
+void _print(T t, V... v)
+{
+    __print(t);
+    if (sizeof...(v))
+        cerr << ", ";
+    _print(v...);
+}
+#ifndef ONLINE_JUDGE
+#define debug(x...)               \
+    cerr << "[" << #x << "] = ["; \
+    _print(x)
+#else
+#define debug(x...)
+#endif
+
+// Operator overloads
+template <typename T1, typename T2> // cin >> pair<T1, T2>
+istream &operator>>(istream &istream, pair<T1, T2> &p)
+{
+    return (istream >> p.first >> p.second);
+}
+template <typename T> // cin >> vector<T>
+istream &operator>>(istream &istream, vector<T> &v)
+{
+    for (auto &it : v)
+        cin >> it;
+    return istream;
+}
+template <typename T1, typename T2> // cout << pair<T1, T2>
+ostream &operator<<(ostream &ostream, const pair<T1, T2> &p)
+{
+    return (ostream << p.first << " " << p.second);
+}
+template <typename T> // cout << vector<T>
+ostream &operator<<(ostream &ostream, const vector<T> &c)
+{
+    for (auto &it : c)
+        cout << it << " ";
+    return ostream;
+}
+
+// Utility functions
+#define print(x) cout << x << '\n'
+
+template <typename T>
+ll sumvec(vector<T> v)
+{
+    ll n = v.size();
+    ll s = 0;
+    fl(i, n) s += v[i];
+    return s;
+}
+
+mt19937 rng;
+int getRandomNumber(int l, int r)
+{
+    uniform_int_distribution<int> dist(l, r);
+    return dist(rng);
+}
+
+void preSolve()
+{
+    rng = mt19937(chrono::steady_clock::now().time_since_epoch().count());
+    // allocateStackMax();
+}
+
+const int N = 300010; 
+
+ull power(ull n, ull k, ull mod)
+{
+    ull ans = 1 % mod;
+    n %= mod;
+    if (n > mod)
+        n += mod; 
+    while (k)
+    {
+        if (k & 1)
+            ans = (__int128)ans * n % mod;
+        n = (__int128)n * n % mod;
+        k >>= 1;
+    }
+    return ans;
+}
+
+const ull MOD1 = 1000000007ULL, MOD2 = 1000000009ULL;
+const ull p1 = 131ULL, p2 = 137ULL;
+ull ip1, ip2;
+pair<ull, ull> pw[N], ipw[N];
+void prec()
+{
+    pw[0] = {1, 1};
+    for (int i = 1; i < N; i++)
+    {
+        pw[i].first = (__int128)pw[i - 1].first * p1 % MOD1;
+        pw[i].second = (__int128)pw[i - 1].second * p2 % MOD2;
+    }
+    ip1 = power(p1, MOD1 - 2, MOD1);
+    ip2 = power(p2, MOD2 - 2, MOD2);
+    ipw[0] = {1, 1};
+    for (int i = 1; i < N; i++)
+    {
+        ipw[i].first = (__int128)ipw[i - 1].first * ip1 % MOD1;
+        ipw[i].second = (__int128)ipw[i - 1].second * ip2 % MOD2;
+    }
+}
+struct Hashing
+{
+    int n;
+    string s;                  // 0 - indexed
+    vector<pair<ull, ull>> hs; // 1 - indexed
+    Hashing() {}
+    Hashing(string _s)
+    {
+        n = _s.size();
+        s = _s;
+        hs.emplace_back(0, 0);
+        for (int i = 0; i < n; i++)
+        {
+            pair<ull, ull> p;
+            ull val = (ull)(s[i] - 'a' + 1); // Map 'a' -> 1, 'b' -> 2, etc.
+            p.first = (hs[i].first + (__int128)pw[i].first * val % MOD1) % MOD1;
+            p.second = (hs[i].second + (__int128)pw[i].second * val % MOD2) % MOD2;
+            hs.push_back(p);
+        }
+    }
+    pair<ull, ull> get_hash(int l, int r)
+    { // 1 - indexed
+        assert(1 <= l && l <= r && r <= n);
+        pair<ull, ull> ans;
+        ans.first = (hs[r].first + MOD1 - hs[l - 1].first) % MOD1 * ipw[l - 1].first % MOD1;
+        ans.second = (hs[r].second + MOD2 - hs[l - 1].second) % MOD2 * ipw[l - 1].second % MOD2;
+        return ans;
+    }
+    pair<ull, ull> get_hash()
+    {
+        return get_hash(1, n);
+    }
+};
+
+// Code
+void solve()
+{
+    string text;
+    cin >> text;
+
+    ll n = text.size();
+    Hashing h1(text);
+
+    ll q;
+    cin >> q;
+    while (q--)
+    {
+        ll l, r;
+        cin >> l >> r;
+        auto hs = h1.get_hash(l + 1, r); //query l r is s[l..r-1], so get_hash(l+1, r)
+        cout << ((ull)hs.first << 32 | hs.second) << edl;
+    }
+}
+// Main
+signed main()
+{
+    // #ifndef ONLINE_JUDGE
+    //     freopen("Error.txt", "w", stderr);
+    // #endif
+    FastIO();
+    preSolve();
+    prec();
+    ll t = 1;
+    // cin >> t;
+    fl(i, t)
+    {
+        solve();
+    }
+    // solve();
+    // fl(i,t) //Kickstart
+    // {
+    //     cout<<"Case #"<<i+1<<": ";
+    //     solve();
+    //     cout<<"\n";
+    // }
+    return 0;
+}
+// End
+
+===== string_hashing64.cpp =====
+#include <bits/stdc++.h>
+using namespace std;
+#define bint __int128
+#define int long long
+#define ll long long
+#define pb push_back
+#define F first
+#define S second
+#define sz(x) (int)(x).size()
+#define all(x) (x).begin(), (x).end()
+#define forn(i, n) for (int i = 0; i < (n); i++)
+#define fore(i, a, b) for (int i = (a); i < (b); i++)
+#define FAST_IO ios::sync_with_stdio(false); cin.tie(0);
+typedef vector<int> vi;
+typedef pair<int,int> pi;
+typedef map<int,int> mp;
+typedef priority_queue<int> pq;
+const int MOD = 1e7;
+const ll INF = 4e18;
+
+struct Hash {
+    bint MOD=212345678987654321LL, P=1777771, PI=1069557410896959571LL;
+    vector<bint> h,pi;
+    Hash(string& s){
+        assert((P*PI)%MOD==1);
+        h.resize(s.size()+1); pi.resize(s.size()+1);
+        h[0]=0; pi[0]=1;
+        bint p=1;
+        for (int i=1; i<=s.size(); ++i) {
+            h[i]=(h[i-1]+p*s[i-1])%MOD;
+            pi[i]=(pi[i-1]*PI)%MOD;
+            p=(p*P)%MOD;
+        }
+    }
+    long long get(int s, int e){
+        return (((h[e]-h[s]+MOD)%MOD)*pi[s])%MOD;
+    }
+};
+
+signed main(){
+    string cad;cin >> cad;
+    Hash h(cad);
+    int q; cin >> q;
+    while(q--){
+        int l, r; cin >> l >> r;
+        cout << h.get(l, r) << endl;
+    }
+    return 0;
+}
+
+
+===== z_func.cpp =====
+vll z_func(string s)
+{
+    ll n = s.length();
+    vll z(n);
+    for (ll i = 1, l = 0, r = 0; i < n; i++)
+    {
+        if (i < r)
+        {
+            z[i] = min(r - i, z[i - l]);
+        }
+        while (i + z[i] < n && s[z[i]] == s[i + z[i]])
+        {
+            z[i]++;
+        }
+        if (i + z[i] > r)
+        {
+            l = i;
+            r = i + z[i];
+        }
+    }
+    return z;
+}
+

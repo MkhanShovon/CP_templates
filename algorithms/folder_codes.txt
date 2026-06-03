@@ -1,0 +1,432 @@
+﻿
+===== Coordinate_compress.cpp =====
+int n = a.size();
+vector<pair<int, int>> pairs(n);
+for(int i = 0; i < n; ++i) {
+   pairs[i] = {a[i], i};
+}
+sort(pairs.begin(), pairs.end());
+int nxt = 1;
+for(int i = 0; i < n; ++i) {
+   if(i > 0 && pairs[i-1].first != pairs[i].first) nxt++;
+   a[pairs[i].second] = nxt;
+}
+
+===== DEC_BIN.cpp =====
+string decToBinary(int n)
+{
+    string s = "";
+    int i = 0;
+    while (n > 0)
+    {
+        s = to_string(n % 2) + s;
+        n = n / 2;
+        i++;
+    }
+    return s;
+}
+ll binaryToDecimal(string n)
+{
+    string num = n;
+    ll dec_value = 0;
+    int base = 1;
+    int len = num.length();
+    for (int i = len - 1; i >= 0; i--)
+    {
+        if (num[i] == '1')
+            dec_value += base;
+        base = base * 2;
+    }
+    return dec_value;
+}
+
+===== inversion.cpp =====
+ll merge_and_count(vector<ll>& arr, ll left, ll mid, ll right) {
+    ll n1 = mid - left + 1;
+    ll n2 = right - mid;
+
+    // Create temp arrays
+    vector<ll> left_arr(n1);
+    vector<ll> right_arr(n2);
+
+    // Copy data to temp arrays left_arr[] and right_arr[]
+    for (ll i = 0; i < n1; i++)
+        left_arr[i] = arr[left + i];
+    for (ll i = 0; i < n2; i++)
+        right_arr[i] = arr[mid + 1 + i];
+
+    ll i = 0; // Initial index of the first subarray
+    ll j = 0; // Initial index of the second subarray
+    ll k = left; // Initial index of the merged subarray
+    ll inv_count = 0;
+
+    // Merge the temp arrays back into arr[l..r]
+    while (i < n1 && j < n2) {
+        if (left_arr[i] <= right_arr[j]) {
+            arr[k++] = left_arr[i++];
+        } else {
+            arr[k++] = right_arr[j++];
+            inv_count += (n1 - i); // Count inversions
+        }
+    }
+
+    // Copy the remaining elements of left_arr[], if any
+    while (i < n1)
+        arr[k++] = left_arr[i++];
+
+    // Copy the remaining elements of right_arr[], if any
+    while (j < n2)
+        arr[k++] = right_arr[j++];
+
+    return inv_count;
+}
+
+// Function to use merge sort and count inversions
+ll merge_sort_and_count(vector<ll>& arr, ll left, ll right) {
+    ll inv_count = 0;
+    if (left < right) {
+        ll mid = left + (right - left) / 2;
+
+        inv_count += merge_sort_and_count(arr, left, mid);
+        inv_count += merge_sort_and_count(arr, mid + 1, right);
+        inv_count += merge_and_count(arr, left, mid, right);
+    }
+    return inv_count;
+}
+
+
+===== Meet_in_the_middle.cpp =====
+#include <iostream>
+#include <bits/stdc++.h>
+// #include <sys/resource.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+using namespace std;
+// using namespace chrono;
+using namespace __gnu_pbds;
+template <typename T>
+using oset = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+template <typename T>
+using omset = tree<T, null_type, less_equal<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+template <typename T, typename R>
+using o_map = tree<T, R, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+// Pragmas
+#pragma GCC optimize("O3,unroll-loops")
+// #ifndef LOCAL_PROJECT
+// #pragma GCC target("avx2")
+// #endif
+// #pragma GCC optimize("Ofast")
+
+// Speed
+inline void FastIO()
+{
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    cout.tie(NULL);
+}
+
+// Aliases
+using ll = long long;
+using lld = long double;
+using ull = unsigned long long;
+
+// Constants
+const lld pi = 3.141592653589793238;
+const ll INF = LONG_LONG_MAX;
+const ll mod = 1e9 + 7;
+
+// TypeDEf
+typedef pair<ll, ll> pll;
+typedef vector<ll> vll;
+typedef vector<pll> vpll;
+typedef vector<string> vs;
+typedef unordered_map<ll, ll> umll;
+typedef map<ll, ll> mll;
+
+// Macros
+#define ff first
+#define ss second
+#define pb push_back
+#define mp make_pair
+#define fl(i, n) for (ll i = 0; i < n; i++)
+#define fls(i, m, n) for (ll i = m; i <= n; i++)
+#define rl(i, m, n) for (ll i = n; i >= m; i--)
+#define py cout << "YES\n";
+#define pm cout << "-1\n";
+#define pn cout << "NO\n";
+#define vr(v) v.begin(), v.end()
+#define rv(v) v.rbegin(), v.rend()
+#define edl '\n'
+#define len(v) v.size()
+#define nl cout << edl;
+
+// Debug
+void __print(int x) { cerr << x; }
+void __print(long x) { cerr << x; }
+void __print(long long x) { cerr << x; }
+void __print(unsigned x) { cerr << x; }
+void __print(unsigned long x) { cerr << x; }
+void __print(unsigned long long x) { cerr << x; }
+void __print(float x) { cerr << x; }
+void __print(double x) { cerr << x; }
+void __print(long double x) { cerr << x; }
+void __print(char x) { cerr << '\'' << x << '\''; }
+void __print(const char *x) { cerr << '"' << x << '"'; }
+void __print(const string &x) { cerr << '"' << x << '"'; }
+void __print(bool x) { cerr << (x ? "true" : "false"); }
+
+template <typename T, typename V>
+void __print(const pair<T, V> &x)
+{
+    cerr << '{';
+    __print(x.first);
+    cerr << ',';
+    __print(x.second);
+    cerr << '}';
+}
+template <typename T>
+void __print(const T &x)
+{
+    int f = 0;
+    cerr << '{';
+    for (auto &i : x)
+        cerr << (f++ ? "," : ""), __print(i);
+    cerr << "}";
+}
+void _print() { cerr << "]\n"; }
+template <typename T, typename... V>
+void _print(T t, V... v)
+{
+    __print(t);
+    if (sizeof...(v))
+        cerr << ", ";
+    _print(v...);
+}
+#ifndef ONLINE_JUDGE
+#define debug(x...)               \
+    cerr << "[" << #x << "] = ["; \
+    _print(x)
+#else
+#define debug(x...)
+#endif
+
+// Operator overloads
+template <typename T1, typename T2> // cin >> pair<T1, T2>
+istream &operator>>(istream &istream, pair<T1, T2> &p)
+{
+    return (istream >> p.first >> p.second);
+}
+template <typename T> // cin >> vector<T>
+istream &operator>>(istream &istream, vector<T> &v)
+{
+    for (auto &it : v)
+        cin >> it;
+    return istream;
+}
+template <typename T1, typename T2> // cout << pair<T1, T2>
+ostream &operator<<(ostream &ostream, const pair<T1, T2> &p)
+{
+    return (ostream << p.first << " " << p.second);
+}
+template <typename T> // cout << vector<T>
+ostream &operator<<(ostream &ostream, const vector<T> &c)
+{
+    for (auto &it : c)
+        cout << it << " ";
+    return ostream;
+}
+
+// Utility functions
+#define print(x) cout << x << '\n'
+
+template <typename T>
+ll sumvec(vector<T> v)
+{
+    ll n = v.size();
+    ll s = 0;
+    fl(i, n) s += v[i];
+    return s;
+}
+
+mt19937 rng;
+int getRandomNumber(int l, int r)
+{
+    uniform_int_distribution<int> dist(l, r);
+    return dist(rng);
+}
+
+void preSolve()
+{
+    rng = mt19937(chrono::steady_clock::now().time_since_epoch().count());
+    // allocateStackMax();
+}
+
+// Code
+void solve()
+{
+
+    ll n;
+    cin >> n;
+    ll m;
+    cin >> m;
+    vll v(n);
+    cin >> v;
+
+    auto get_subset_sums = [&](ll l, ll r) -> vector<ll> {
+		ll len = r - l + 1;
+		vector<ll> res;
+
+		fl(i, (1 << len)) {
+			ll sum = 0;
+			fl(j, len) {
+				if (i & (1 << j)) { sum += v[l + j]; }
+			}
+			res.push_back(sum % m);
+		}
+
+		return res;
+	};
+
+    auto left = get_subset_sums(0, n / 2 - 1);
+    auto right = get_subset_sums(n / 2, n - 1);
+
+    sort(vr(right));
+    sort(vr(left));
+
+    ll ans = 0;
+	for (ll i : left) {
+		auto low_iterator = lower_bound(right.begin(), right.end(), m - i);
+		auto high_iterator = upper_bound(right.begin(), right.end(), m - i);
+		ans += high_iterator - low_iterator;
+	}
+    print(ans);
+}
+// Main
+signed main()
+{
+    // #ifndef ONLINE_JUDGE
+    //     freopen("Error.txt", "w", stderr);
+    // #endif
+    FastIO();
+    preSolve();
+    ll t = 1;
+    // cin >> t;
+    fl(i, t)
+    {
+        solve();
+    }
+    // solve();
+    // fl(i,t) //Kickstart
+    // {
+    //     cout<<"Case #"<<i+1<<": ";
+    //     solve();
+    //     cout<<"\n";
+    // }
+    return 0;
+}
+// End
+
+===== mex.cpp =====
+ll mex(vll v)
+{
+    sort(vr(v));
+    ll mx = 0;
+    fl(i, v.size())
+    {
+        if (v[i] == mx)
+        {
+            mx++;
+        }
+    }
+    return mx;
+}
+
+
+===== Mo_algo.cpp =====
+inline void remove(idx);  // TODO: remove value at idx from data structure
+inline void add(idx);     // TODO: add value at idx from data structure
+inline int get_answer();  // TODO: extract the current answer of the data structure
+
+int block_size;
+
+struct Query {
+    int l, r, idx;
+    bool operator<(Query other) const
+    {
+        return make_pair(l / block_size, r) <
+               make_pair(other.l / block_size, other.r);
+    }
+};
+
+vector<int> mo_s_algorithm(vector<Query> queries) {
+    vector<int> answers(queries.size());
+    sort(queries.begin(), queries.end());
+
+    // TODO: initialize data structure
+
+    int cur_l = 0;
+    int cur_r = -1;
+    // invariant: data structure will always reflect the range [cur_l, cur_r]
+    for (Query q : queries) {
+        while (cur_l > q.l) {
+            cur_l--;
+            add(cur_l);
+        }
+        while (cur_r < q.r) {
+            cur_r++;
+            add(cur_r);
+        }
+        while (cur_l < q.l) {
+            remove(cur_l);
+            cur_l++;
+        }
+        while (cur_r > q.r) {
+            remove(cur_r);
+            cur_r--;
+        }
+        answers[q.idx] = get_answer();
+    }
+    return answers;
+}
+
+===== pref_sum_formula.txt =====
+So, for 1D prefix sums you simply do S[i + 1] = S[i] + a[i], nothing special here. For 2D, on the other side, you have to subtract overlapping region: S[i][j] = S[i - 1][j] + S[i][j - 1] - S[i - 1][j - 1] + a[i][j]. For 3D there will be even more overlapping: S[i][j][k] = S[i - 1][j][k] + S[i][j - 1][k] + S[i][j][k - 1] - S[i - 1][j - 1][k] - S[i][j - 1][k - 1] - S[i - 1][j][k - 1] + S[i - 1][j - 1][k - 1] + a[i][j][k]
+
+===== ternary_search.cpp =====
+// Ternary search on integers to find maximum
+int ternarySearch(int l, int r) {
+    while (r - l > 2) {
+        int m1 = l + (r - l) / 3;
+        int m2 = r - (r - l) / 3;
+        if (f(m1) < f(m2))
+        //for minimum use >= instead of <
+            l = m1;
+        else
+            r = m2;
+    }
+    // Brute force through the remaining 2 or 3 elements
+    int maxVal = f(l);
+    for (int i = l + 1; i <= r; i++) {
+        maxVal = max(maxVal, f(i));
+    }
+    return maxVal;
+}
+
+// Ternary search on doubles to find maximum
+double ternarySearch(double l, double r) {
+    const double eps = 1e-9;  // Precision threshold
+    while (r - l > eps) {
+        double m1 = l + (r - l) / 3;
+        double m2 = r - (r - l) / 3;
+        if (f(m1) < f(m2))
+        //for minimum use >= instead of <
+            l = m1;
+        else
+            r = m2;
+    }
+    return (l + r) / 2;  // Midpoint will give the maximum value
+}
+

@@ -1,0 +1,1365 @@
+﻿
+===== BIT.cpp =====
+template <class T>
+struct BIT
+{ // 1-indexed
+  int n;
+  vector<T> t;
+  BIT() {}
+  void init(int _n)
+  {
+    n = _n;
+    t.assign(n + 1, 0);
+  }
+  T query(int i)
+  {
+    T ans = 0;
+    for (; i >= 1; i -= (i & -i))
+      ans += t[i];
+    return ans;
+  }
+  void upd(int i, T val)
+  {
+    if (i <= 0)
+      return;
+    for (; i <= n; i += (i & -i))
+      t[i] += val;
+  }
+  void upd(int l, int r, T val)
+  {
+    upd(l, val);
+    upd(r + 1, -val);
+  }
+  T query(int l, int r)
+  {
+    return query(r) - query(l - 1);
+  }
+  ll bit_search(ll v)
+  { // lower bound
+    ll sum = 0;
+    ll pos = 0;
+    ll N = bit.size();
+    for (ll i = log2(N) + 1; i >= 0; i--)
+    {
+      if (pos + (1 << i) < N && sum + bit[pos + (1 << i)] < v)
+      {
+        sum += bit[pos + (1 << i)];
+        pos += (1 << i);
+      }
+    }
+    return pos + 1;
+  }
+};
+
+===== bit_grok.cpp =====
+template <typename T>
+struct BIT {
+private:
+    size_t n; // Size of the BIT (1-indexed)
+    std::vector<T> t; // Internal array for BIT
+    T neutral_value; // Neutral value for the operation (e.g., 0 for sum)
+
+public:
+    // Constructor: Initializes BIT with given size and neutral value
+    BIT(size_t size = 0, T neutral = T()) {
+        if (size > 0) init(size, neutral);
+    }
+
+    // Initialize the BIT with size and neutral value
+    // T must support addition, subtraction, and comparison for bit_search
+    void init(size_t size, T neutral = T()) {
+        if (size == 0) throw std::invalid_argument("Size must be positive");
+        n = size;
+        neutral_value = neutral;
+        t.assign(n + 1, neutral_value);
+    }
+
+    // Query prefix sum up to index i (1-based)
+    T query(size_t i) const {
+        if (i > n) throw std::invalid_argument("Query index out of bounds");
+        T ans = neutral_value;
+        for (; i >= 1; i -= (i & -i)) {
+            ans = ans + t[i];
+        }
+        return ans;
+    }
+
+    // Update index i (1-based) by adding val
+    void upd(size_t i, T val) {
+        if (i < 1 || i > n) throw std::invalid_argument("Update index out of bounds");
+        for (; i <= n; i += (i & -i)) {
+            t[i] = t[i] + val;
+        }
+    }
+
+    // Update range [l, r] (1-based) by adding val
+    void upd(size_t l, size_t r, T val) {
+        if (l < 1 || r > n || l > r) throw std::invalid_argument("Invalid range update bounds");
+        upd(l, val);
+        if (r < n) upd(r + 1, -val);
+    }
+
+    // Query sum over range [l, r] (1-based)
+    T query(size_t l, size_t r) const {
+        if (l < 1 || r > n || l > r) throw std::invalid_argument("Invalid range query bounds");
+        return query(r) - query(l - 1);
+    }
+
+    // Find the smallest index i (1-based) such that query(i) >= v
+    // Returns n + 1 if no such index exists
+    size_t bit_search(T v) const {
+        if (v <= neutral_value) return 1; // Handle cases where v is too small
+        T sum = neutral_value;
+        size_t pos = 0;
+        size_t log_n = static_cast<size_t>(std::log2(n) + 1);
+        for (size_t i = log_n; i != size_t(-1); --i) {
+            size_t next_pos = pos + (1ULL << i);
+            if (next_pos <= n && sum + t[next_pos] < v) {
+                sum = sum + t[next_pos];
+                pos = next_pos;
+            }
+        }
+        return pos + 1;
+    }
+
+    void clear() {
+        t.assign(n + 1, neutral_value);
+    }
+};
+
+===== DSU.cpp =====
+class DSU
+{
+private:
+    vector<ll> parent, size, minElement, maxElement;
+    ll n;
+    ll num, largest;
+
+public:
+    DSU(ll nn)
+    {
+        this->n = nn;
+        parent.resize(n + 1);
+        size.resize(n + 1, 1); // Each element is its own set initially, so size is 1
+        minElement.resize(n + 1);
+        maxElement.resize(n + 1);
+        num = nn;
+        largest = 1;
+
+        for (ll i = 1; i <= n; ++i)
+        {
+            parent[i] = i;
+            minElement[i] = i;
+            maxElement[i] = i;
+        }
+    }
+
+    ll find(ll u)
+    {
+        if (parent[u] != u)
+        {
+            parent[u] = find(parent[u]); // Path Compression
+        }
+        return parent[u];
+    }
+
+    void unite(ll u, ll v)
+    {
+        ll rootU = find(u);
+        ll rootV = find(v);
+
+        if (rootU != rootV)
+        {
+            // Union by Size
+            if (size[rootU] < size[rootV])
+            {
+                swap(rootU, rootV); // Ensure rootU is always the larger set
+            }
+
+            parent[rootV] = rootU; // Merge the smaller set into the larger set
+            size[rootU] += size[rootV];
+            largest = max(largest, size[rootU]);
+            minElement[rootU] = min(minElement[rootU], minElement[rootV]);
+            maxElement[rootU] = max(maxElement[rootU], maxElement[rootV]);
+            num--;
+        }
+    }
+
+    tuple<int, int, int> get(int v)
+    {
+        int rootV = find(v);
+        return {minElement[rootV], maxElement[rootV], size[rootV]};
+    }
+
+    int getNum()
+    {
+        return num;
+    }
+
+    int getLarg()
+    {
+        return largest;
+    }
+};
+
+===== Lazy_seg.cpp =====
+#include <iostream>
+#include <bits/stdc++.h>
+// #include <sys/resource.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+using namespace std;
+// using namespace chrono;
+using namespace __gnu_pbds;
+template <typename T>
+using oset = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+template <typename T>
+using omset = tree<T, null_type, less_equal<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+// Pragmas
+#pragma GCC optimize("O3,unroll-loops")
+// #ifndef LOCAL_PROJECT
+// #pragma GCC target("avx2")
+// #endif
+//#pragma GCC optimize("Ofast")
+
+// Speed
+#define Code ios_base::sync_with_stdio(false);
+#define By cin.tie(NULL);
+#define MaraKhaw cout.tie(NULL);
+
+// Aliases
+using ll = long long;
+using lld = long double;
+using ull = unsigned long long;
+
+// Constants
+const lld pi = 3.141592653589793238;
+const ll INF = LLONG_MAX;
+const ll mod = 1e9 + 7;
+
+// TypeDEf
+typedef pair<ll, ll> pll;
+typedef vector<ll> vll;
+typedef vector<pll> vpll;
+typedef vector<string> vs;
+typedef unordered_map<ll, ll> umll;
+typedef map<ll, ll> mll;
+
+// Macros
+#define ff first
+#define ss second
+#define pb push_back
+#define mp make_pair
+#define fl(i, n) for (ll i = 0; i < n; i++)
+#define fls(i, m, n) for (ll i = m; i <= n; i++)
+#define rl(i, m, n) for (ll i = n; i >= m; i--)
+#define py cout << "YES\n";
+#define pm cout << "-1\n";
+#define pn cout << "NO\n";
+#define vr(v) v.begin(), v.end()
+#define rv(v) v.rbegin(), v.rend()
+#define edl '\n'
+#define len(v) v.size()
+#define nl cout << edl;
+
+// Debug
+void __print(int x) { cerr << x; }
+void __print(long x) { cerr << x; }
+void __print(long long x) { cerr << x; }
+void __print(unsigned x) { cerr << x; }
+void __print(unsigned long x) { cerr << x; }
+void __print(unsigned long long x) { cerr << x; }
+void __print(float x) { cerr << x; }
+void __print(double x) { cerr << x; }
+void __print(long double x) { cerr << x; }
+void __print(char x) { cerr << '\'' << x << '\''; }
+void __print(const char *x) { cerr << '"' << x << '"'; }
+void __print(const string &x) { cerr << '"' << x << '"'; }
+void __print(bool x) { cerr << (x ? "true" : "false"); }
+
+template <typename T, typename V>
+void __print(const pair<T, V> &x)
+{
+    cerr << '{';
+    __print(x.first);
+    cerr << ',';
+    __print(x.second);
+    cerr << '}';
+}
+template <typename T>
+void __print(const T &x)
+{
+    int f = 0;
+    cerr << '{';
+    for (auto &i : x)
+        cerr << (f++ ? "," : ""), __print(i);
+    cerr << "}";
+}
+void _print() { cerr << "]\n"; }
+template <typename T, typename... V>
+void _print(T t, V... v)
+{
+    __print(t);
+    if (sizeof...(v))
+        cerr << ", ";
+    _print(v...);
+}
+#ifndef ONLINE_JUDGE
+#define debug(x...)               \
+    cerr << "[" << #x << "] = ["; \
+    _print(x)
+#else
+#define debug(x...)
+#endif
+
+// Operator overloads
+template <typename T1, typename T2> // cin >> pair<T1, T2>
+istream &operator>>(istream &istream, pair<T1, T2> &p)
+{
+    return (istream >> p.first >> p.second);
+}
+template <typename T> // cin >> vector<T>
+istream &operator>>(istream &istream, vector<T> &v)
+{
+    for (auto &it : v)
+        cin >> it;
+    return istream;
+}
+template <typename T1, typename T2> // cout << pair<T1, T2>
+ostream &operator<<(ostream &ostream, const pair<T1, T2> &p)
+{
+    return (ostream << p.first << " " << p.second);
+}
+template <typename T> // cout << vector<T>
+ostream &operator<<(ostream &ostream, const vector<T> &c)
+{
+    for (auto &it : c)
+        cout << it << " ";
+    return ostream;
+}
+
+// Utility functions
+#define print(x) cout << x << '\n'
+
+template <typename T>
+ll sumvec(vector<T> v)
+{
+    ll n = v.size();
+    ll s = 0;
+    fl(i, n) s += v[i];
+    return s;
+}
+
+
+mt19937 rng;
+int getRandomNumber(int l, int r)
+{
+    uniform_int_distribution<int> dist(l, r);
+    return dist(rng);
+}
+
+void preSolve()
+{
+    rng = mt19937(chrono::steady_clock::now().time_since_epoch().count());
+    // allocateStackMax();
+}
+
+struct seg_tree
+{
+    ll size;
+    vector<ll> ops, vals;
+
+    ll NEUTRAL_ELEMENT = 0,NO_OPERATION = LLONG_MAX-1;
+
+    ll modify_op(ll a, ll b, ll len){
+        if(b == NO_OPERATION) return a;
+        // debug(b);
+        return b;
+    }
+
+    ll calc_op(ll a, ll b){
+        return a|b;
+    }
+
+    void apply_op(ll &a, ll b, ll len){
+        a = modify_op(a,b,len);
+    }
+
+    void init(ll n)
+    {
+        size = 1;
+        while (size < n)
+            size *= 2;
+        ops.assign(2 * size, 0LL);
+        vals.assign(2 * size, 0LL);
+
+        // build(0,0,size);
+    }
+
+    void propagate(ll x, ll lx, ll rx){
+        if(rx-lx == 1){
+            return;
+        }
+        ll m=(rx+lx)/2;
+
+        apply_op(ops[2*x+1],ops[x],1);
+        apply_op(vals[2*x+1],ops[x],m-lx);
+        apply_op(ops[2*x+2],ops[x],1);
+        apply_op(vals[2*x+2],ops[x],rx-m);
+        ops[x] = NO_OPERATION;
+    }
+
+    void modify(ll l, ll r, ll v, ll x, ll lx, ll rx)
+    {
+        propagate(x,lx,rx);
+        if (lx >= r or l >= rx)
+        {
+            return;
+        }
+        if (lx >= l and rx <= r)
+        {
+            ll val = (1LL<<v);
+            apply_op(vals[x],val,rx-lx);
+            apply_op(ops[x],val,1);// this for range update
+            return;
+        }
+
+        ll m = (lx + rx) / 2;
+        modify(l, r, v, 2 * x + 1, lx, m);
+        modify(l, r, v, 2 * x + 2, m, rx);
+        vals[x] = calc_op(vals[2 * x + 1], vals[2 * x + 2]);
+        
+    }
+
+    void modify(ll l, ll r, ll v)
+    {
+        modify(l, r, v, 0, 0, size);
+    }
+
+    ll calc(ll l, ll r, ll x, ll lx, ll rx){
+        propagate(x,lx,rx);
+        if(lx >= r or l >= rx){
+            return NEUTRAL_ELEMENT;
+        }
+        if(lx >= l and rx <= r){
+            return vals[x];
+        }
+
+        ll m = (lx+rx)/2;
+        ll m1= calc(l,r,2*x+1,lx,m);
+        ll m2 = calc(l,r,2*x+2,m,rx);
+        auto res = calc_op(m1,m2);
+        
+        return res;
+    }
+
+    ll calc(ll l, ll r){
+        return calc(l,r,0,0,size);
+    }
+};
+
+// Code
+void solve()
+{
+
+    ll n;
+    cin >> n ;
+    vll v(n);
+    cin >> v;
+}
+// Main
+signed main()
+{
+// #ifndef ONLINE_JUDGE
+//     freopen("Error.txt", "w", stderr);
+// #endif
+    Code By MaraKhaw
+    preSolve();
+    ll t=1;
+    cin >> t;
+    fl(i, t)
+    {
+        solve();
+    }
+    // solve();
+    // fl(i,t) //Kickstart
+    // {
+    //     cout<<"Case #"<<i+1<<": ";
+    //     solve();
+    //     cout<<"\n";
+    // }
+    return 0;
+}
+// End
+
+===== Lazy_seg_grok.cpp =====
+#include <bits/stdc++.h>
+using namespace std;
+
+using ll = long long;
+
+template <typename T>
+struct SegmentTree {
+private:
+    size_t n; // Size of the segment tree (power of 2)
+    std::vector<T> tree; // Tree storage for combined values
+    std::vector<T> lazy; // Lazy storage for pending updates
+    T neutral_value; // Neutral value for the operation (e.g., 0 for sum)
+    std::function<T(T, T)> combine; // Function to combine two segments
+
+    // Apply the lazy update to a node and propagate to children
+    void propagate(ll x, ll lx, ll rx) {
+        if (lazy[x] == neutral_value) return; // No pending update
+        tree[x] = tree[x] + lazy[x] * (rx - lx); // Apply update to current node (for sum)
+        if (rx - lx > 1) { // Not a leaf, propagate to children
+            lazy[2 * x + 1] = lazy[2 * x + 1] + lazy[x];
+            lazy[2 * x + 2] = lazy[2 * x + 2] + lazy[x];
+        }
+        lazy[x] = neutral_value; // Clear lazy value
+    }
+
+    void build(const std::vector<T>& a, ll x, ll lx, ll rx) {
+        if (rx - lx == 1) {
+            if (lx < static_cast<ll>(a.size())) {
+                tree[x] = a[lx];
+            }
+            return;
+        }
+        ll m = (lx + rx) / 2;
+        build(a, 2 * x + 1, lx, m);
+        build(a, 2 * x + 2, m, rx);
+        tree[x] = combine(tree[2 * x + 1], tree[2 * x + 2]);
+    }
+
+    T query(ll l, ll r, ll x, ll lx, ll rx) {
+        propagate(x, lx, rx); // Apply any pending updates
+        if (lx >= r || l >= rx) return neutral_value;
+        if (lx >= l && rx <= r) return tree[x];
+        ll m = (lx + rx) / 2;
+        T s1 = query(l, r, 2 * x + 1, lx, m);
+        T s2 = query(l, r, 2 * x + 2, m, rx);
+        return combine(s1, s2);
+    }
+
+    void update(ll i, T v, ll x, ll lx, ll rx) {
+        propagate(x, lx, rx); // Apply any pending updates
+        if (rx - lx == 1) {
+            tree[x] = v;
+            return;
+        }
+        ll m = (lx + rx) / 2;
+        if (i < m) {
+            update(i, v, 2 * x + 1, lx, m);
+        } else {
+            update(i, v, 2 * x + 2, m, rx);
+        }
+        tree[x] = combine(tree[2 * x + 1], tree[2 * x + 2]);
+    }
+
+    void range_update(ll l, ll r, T v, ll x, ll lx, ll rx) {
+        propagate(x, lx, rx); // Apply any pending updates
+        if (lx >= r || l >= rx) return;
+        if (lx >= l && rx <= r) {
+            lazy[x] = lazy[x] + v; // Store update in lazy array
+            propagate(x, lx, rx); // Apply immediately to current node
+            return;
+        }
+        ll m = (lx + rx) / 2;
+        range_update(l, r, v, 2 * x + 1, lx, m);
+        range_update(l, r, v, 2 * x + 2, m, rx);
+        tree[x] = combine(tree[2 * x + 1], tree[2 * x + 2]);
+    }
+
+public:
+    // Constructor: Initializes tree with size, neutral value, combine function, and optional array
+    SegmentTree(size_t size = 0, T neutral = T(), std::function<T(T, T)> comb = nullptr, const std::vector<T>& arr = {}) {
+        if (size > 0) {
+            init(size, neutral, comb);
+            if (!arr.empty()) build(arr);
+        }
+    }
+
+    // Initialize the segment tree with size, neutral value, and combine function
+    // Combine function must be associative; neutral value must satisfy combine(x, neutral) = x
+    // For range updates, assumes additive updates (e.g., adding v to a range for sum queries)
+    void init(size_t size, T neutral, std::function<T(T, T)> comb) {
+        if (size == 0) throw std::invalid_argument("Size must be positive");
+        if (!comb) throw std::invalid_argument("Combine function must be provided");
+        n = 1;
+        while (n < size) n *= 2;
+        neutral_value = neutral;
+        combine = comb;
+        tree.assign(2 * n, neutral_value);
+        lazy.assign(2 * n, neutral_value); // Initialize lazy array
+    }
+
+    // Build the tree from an input array
+    void build(const std::vector<T>& arr) {
+        if (arr.size() > n) throw std::invalid_argument("Array size exceeds initialized size");
+        build(arr, 0, 0, n);
+    }
+
+    // Query the combine operation over range [l, r)
+    T query(size_t l, size_t r) {
+        if (l >= n || r > n || l >= r) throw std::invalid_argument("Invalid query range");
+        return query(l, r, 0, 0, n);
+    }
+
+    // Update the value at position pos to new_val (point update)
+    void update(size_t pos, T new_val) {
+        if (pos >= n) throw std::invalid_argument("Invalid update position");
+        update(pos, new_val, 0, 0, n);
+    }
+
+    // Add value v to all elements in range [l, r)
+    void range_update(size_t l, size_t r, T v) {
+        if (l >= n || r > n || l >= r) throw std::invalid_argument("Invalid range update range");
+        range_update(l, r, v, 0, 0, n);
+    }
+};
+
+int main() {
+    std::vector<int> arr = {1, 2, 3, 4, 5};
+    SegmentTree<int> segTree(arr.size(), 0, [](int a, int b) { return a + b; }, arr);
+    std::cout << segTree.query(1, 4) << std::endl; // Outputs 9 (2 + 3 + 4)
+    segTree.range_update(1, 4, 2); // Add 2 to arr[1..3]
+    std::cout << segTree.query(1, 4) << std::endl; // Outputs 15 (4 + 5 + 6)
+    segTree.update(2, 10); // Set arr[2] to 10
+    std::cout << segTree.query(1, 4) << std::endl; // Outputs 16 (4 + 10 + 6)
+    return 0;
+}
+
+===== Seg_tree.cpp =====
+template <typename T>
+struct SegmentTree
+{
+    int n;
+    vector<T> tree;
+    T neutral_value;           // Neutral value for the operation (e.g., 0 for sum, INT_MAX for min)
+    function<T(T, T)> combine; // Function to combine two segments
+
+    void init(int size, T neutral, function<T(T, T)> comb)
+    {
+        n = 1;
+        neutral_value = neutral;
+        combine = comb;
+        while (n < size)
+            n *= 2;
+        tree.assign(2 * n, neutral_value);
+    }
+
+    void build(const vector<T> &a, ll x, ll lx, ll rx)
+    {
+        if (rx - lx == 1)
+        {
+            if (lx < (ll)a.size())
+            {
+                tree[x] = a[lx];
+                // debug(lx,a[lx].mn,a[lx].mx,a[lx].inc);
+            }
+            return;
+        }
+        ll m = (lx + rx) / 2;
+        build(a, 2 * x + 1, lx, m);
+        build(a, 2 * x + 2, m, rx);
+        tree[x] = combine(tree[2 * x + 1], tree[2 * x + 2]);
+    }
+
+    T query(ll l, ll r, ll x, ll lx, ll rx)
+    {
+        if (lx >= r || l >= rx)
+            return neutral_value;
+        if (lx >= l && rx <= r)
+            return tree[x];
+        ll m = (lx + rx) / 2;
+        T s1 = query(l, r, 2 * x + 1, lx, m);
+        T s2 = query(l, r, 2 * x + 2, m, rx);
+        return combine(s1, s2);
+    }
+
+    void update(ll i, T v, ll x, ll lx, ll rx)
+    {
+        if (rx - lx == 1)
+        {
+            tree[x] = v;
+            return;
+        }
+        ll m = (lx + rx) / 2;
+        if (i < m)
+        {
+            update(i, v, 2 * x + 1, lx, m);
+        }
+        else
+        {
+            update(i, v, 2 * x + 2, m, rx);
+        }
+        tree[x] = combine(tree[2 * x + 1], tree[2 * x + 2]);
+    }
+
+    // Helper functions to simplify calling
+    void build(const vector<T> &arr)
+    {
+        build(arr, 0, 0, n);
+    }
+
+    T query(int l, int r)
+    {
+        return query(l, r, 0, 0, n);
+    }
+
+    void update(int pos, T new_val)
+    {
+        update(pos, new_val, 0, 0, n);
+    }
+};
+//SegmentTree<int> segTree(arr.size(), 0, [](int a, int b) { return a + b; });
+
+
+===== seg_tree_grok.cpp =====
+#include <bits/stdc++.h>    
+using namespace std;
+
+using ll = long long;
+
+template <typename T>
+struct SegmentTree {
+private:
+    size_t n; // Size of the segment tree (power of 2)
+    std::vector<T> tree; // Tree storage
+    T neutral_value; // Neutral value for the operation (e.g., 0 for sum, INT_MAX for min)
+    std::function<T(T, T)> combine; // Function to combine two segments
+
+    void build(const std::vector<T>& a, ll x, ll lx, ll rx) {
+        if (rx - lx == 1) {
+            if (lx < static_cast<ll>(a.size())) {
+                tree[x] = a[lx];
+            }
+            return;
+        }
+        ll m = (lx + rx) / 2;
+        build(a, 2 * x + 1, lx, m);
+        build(a, 2 * x + 2, m, rx);
+        tree[x] = combine(tree[2 * x + 1], tree[2 * x + 2]);
+    }
+
+    T query(ll l, ll r, ll x, ll lx, ll rx) {
+        if (lx >= r || l >= rx) return neutral_value;
+        if (lx >= l && rx <= r) return tree[x];
+        ll m = (lx + rx) / 2;
+        T s1 = query(l, r, 2 * x + 1, lx, m);
+        T s2 = query(l, r, 2 * x + 2, m, rx);
+        return combine(s1, s2);
+    }
+
+    void update(ll i, T v, ll x, ll lx, ll rx) {
+        if (rx - lx == 1) {
+            tree[x] = v;
+            return;
+        }
+        ll m = (lx + rx) / 2;
+        if (i < m) {
+            update(i, v, 2 * x + 1, lx, m);
+        } else {
+            update(i, v, 2 * x + 2, m, rx);
+        }
+        tree[x] = combine(tree[2 * x + 1], tree[2 * x + 2]);
+    }
+
+public:
+    // Constructor: Initializes tree with size, neutral value, combine function, and optional array
+    SegmentTree(size_t size = 0, T neutral = T(), std::function<T(T, T)> comb = nullptr, const std::vector<T>& arr = {}) {
+        if (size > 0) {
+            init(size, neutral, comb);
+            if (!arr.empty()) build(arr);
+        }
+    }
+
+    // Initialize the segment tree with size, neutral value, and combine function
+    // Combine function must be associative; neutral value must satisfy combine(x, neutral) = x
+    void init(size_t size, T neutral, std::function<T(T, T)> comb) {
+        if (size == 0) throw std::invalid_argument("Size must be positive");
+        if (!comb) throw std::invalid_argument("Combine function must be provided");
+        n = 1;
+        while (n < size) n *= 2;
+        neutral_value = neutral;
+        combine = comb;
+        tree.assign(2 * n, neutral_value);
+    }
+
+    // Build the tree from an input array
+    void build(const std::vector<T>& arr) {
+        if (arr.size() > n) throw std::invalid_argument("Array size exceeds initialized size");
+        build(arr, 0, 0, n);
+    }
+
+    // Query the combine operation over range [l, r)
+    T query(size_t l, size_t r) {
+        if (l >= n || r > n || l >= r) throw std::invalid_argument("Invalid query range");
+        return query(l, r, 0, 0, n);
+    }
+
+    // Update the value at position pos to new_val
+    void update(size_t pos, T new_val) {
+        if (pos >= n) throw std::invalid_argument("Invalid update position");
+        update(pos, new_val, 0, 0, n);
+    }
+};
+
+int main() {
+    std::vector<int> arr = {1, 2, 3, 4, 5};
+    SegmentTree<int> segTree(arr.size(), 0, [](int a, int b) { return a + b; }, arr);
+    std::cout << segTree.query(1, 4) << std::endl; // Outputs 9 (2 + 3 + 4)
+    segTree.update(2, 10); // Update arr[2] to 10
+    std::cout << segTree.query(1, 4) << std::endl; // Outputs 16 (2 + 10 + 4)
+    return 0;
+}
+
+===== sparse_table.cpp =====
+#include <bits/stdc++.h>
+using namespace std;
+
+template <typename T>
+class SparseTable {
+private:
+    int n, K;
+    vector<int> lg2;            // floor(log2) table
+    vector<vector<T>> st;       // st[k][i] covers [i, i + 2^k - 1]
+    function<T(const T&, const T&)> combine;
+    T identity;
+    bool idempotent;            // if true -> O(1) queries, else O(log N)
+
+    void build(const vector<T>& a) {
+        n = (int)a.size();
+        if (n == 0) return;
+
+        // precompute logs
+        lg2.assign(n + 1, 0);
+        for (int i = 2; i <= n; ++i) lg2[i] = lg2[i / 2] + 1;
+
+        K = lg2[n] + 1;
+        st.assign(K, vector<T>(n));
+        // base layer
+        for (int i = 0; i < n; ++i) st[0][i] = a[i];
+        // build
+        for (int k = 1; k < K; ++k) {
+            int len = 1 << k;
+            for (int i = 0; i + len <= n; ++i) {
+                st[k][i] = combine(st[k-1][i], st[k-1][i + (len >> 1)]);
+            }
+        }
+    }
+
+public:
+    // Constructor: (identity, combine, array, idempotent?)
+    SparseTable(const T& identity_,
+                function<T(const T&, const T&)> combine_,
+                const vector<T>& a,
+                bool idempotent_ = true)
+        : combine(move(combine_)), identity(identity_), idempotent(idempotent_) {
+        build(a);
+    }
+
+    // Optional ctor mirroring your SegmentTree example signature
+    SparseTable(size_t /*n_unused*/,
+                const T& identity_,
+                function<T(const T&, const T&)> combine_,
+                const vector<T>& a,
+                bool idempotent_ = true)
+        : combine(move(combine_)), identity(identity_), idempotent(idempotent_) {
+        build(a);
+    }
+
+    // Query on inclusive range [l, r]
+    T query(int l, int r) const {
+        if (l > r || l < 0 || r >= n) throw out_of_range("Invalid query range");
+        if (idempotent) {
+            int len = r - l + 1;
+            int k = lg2[len];
+            // two overlapping blocks of length 2^k
+            return combine(st[k][l], st[k][r - (1 << k) + 1]);
+        } else {
+            // disjoint power-of-two decomposition (left to right)
+            T res = identity;
+            int pos = l;
+            int len = r - l + 1;
+            for (int k = 0; len > 0; ++k) {
+                if (len & 1) {
+                    res = combine(res, st[k][pos]);
+                    pos += (1 << k);
+                }
+                len >>= 1;
+            }
+            return res;
+        }
+    }
+
+    int size() const { return n; }
+};
+
+int main() {
+    vector<int> arr = {3, 1, 4, 1, 5, 9, 2};
+
+    // Min (idempotent, O(1) query)
+    SparseTable<int> stMin(
+        INT_MAX,
+        [](int a, int b){ return min(a, b); },
+        arr,
+        /*idempotent=*/true
+    );
+    cout << "min[1,5] = " << stMin.query(1,5) << "\n";
+
+    // Max (idempotent, O(1) query)
+    SparseTable<int> stMax(
+        INT_MIN,
+        [](int a, int b){ return max(a, b); },
+        arr,
+        true
+    );
+    cout << "max[1,5] = " << stMax.query(1,5) << "\n";
+
+    // GCD (idempotent, O(1) query)
+    SparseTable<int> stGcd(
+        0,
+        [](int a, int b){ return std::gcd(a, b); },
+        arr,
+        true
+    );
+    cout << "gcd[0,6] = " << stGcd.query(0,6) << "\n";
+
+    // Sum (NOT idempotent, O(log N) query)
+    SparseTable<long long> stSum(
+        0LL,
+        [](long long a, long long b){ return a + b; },
+        vector<long long>(arr.begin(), arr.end()),
+        /*idempotent=*/false
+    );
+    cout << "sum[2,6] = " << stSum.query(2,6) << "\n";
+
+    return 0;
+}
+
+
+===== sqrt.cpp =====
+#include <bits/stdc++.h>
+using namespace std;
+
+struct SqrtRangeAddRangeQuery {
+    int n, B, numBlocks;
+    std::vector<long long> a;      // base values
+    std::vector<long long> lazy;   // lazy add per block
+    std::vector<long long> blockSum; // sum of each block (excluding lazy)
+
+    SqrtRangeAddRangeQuery(const std::vector<long long>& arr) {
+        n = (int)arr.size();
+        B = (int)std::floor(std::sqrt(std::max(1, n))) + 1; // block size
+        numBlocks = (n + B - 1) / B;
+        a = arr;
+        lazy.assign(numBlocks, 0);
+        blockSum.assign(numBlocks, 0);
+
+        // Initialize block sums
+        for (int i = 0; i < n; ++i) {
+            blockSum[i / B] += a[i];
+        }
+    }
+
+    // Add u to [l, r] (0-indexed)
+    void add(int l, int r, long long u) {
+        int bl = l / B, br = r / B;
+        if (bl == br) {
+            for (int i = l; i <= r && i < n; ++i) {
+                a[i] += u;
+                blockSum[bl] += u;
+            }
+            return;
+        }
+
+        // Left tail
+        int leftEnd = (bl + 1) * B - 1;
+        for (int i = l; i <= leftEnd && i < n; ++i) {
+            a[i] += u;
+            blockSum[bl] += u;
+        }
+
+        // Whole blocks
+        for (int b = bl + 1; b <= br - 1; ++b) {
+            lazy[b] += u;
+            blockSum[b] += u * (std::min(n, (b + 1) * B) - b * B);
+        }
+
+        // Right tail
+        for (int i = br * B; i <= r && i < n; ++i) {
+            a[i] += u;
+            blockSum[br] += u;
+        }
+    }
+
+    // Get value at position k (0-indexed)
+    long long getPoint(int k) const {
+        return a[k] + lazy[k / B];
+    }
+
+    // Get sum of range [l, r] (0-indexed)
+    long long getRange(int l, int r) const {
+        long long sum = 0;
+        int bl = l / B, br = r / B;
+
+        if (bl == br) {
+            for (int i = l; i <= r && i < n; ++i) {
+                sum += a[i] + lazy[bl];
+            }
+            return sum;
+        }
+
+        // Left tail
+        int leftEnd = (bl + 1) * B - 1;
+        for (int i = l; i <= leftEnd && i < n; ++i) {
+            sum += a[i] + lazy[bl];
+        }
+
+        // Whole blocks
+        for (int b = bl + 1; b <= br - 1; ++b) {
+            sum += blockSum[b] + lazy[b] * (std::min(n, (b + 1) * B) - b * B);
+        }
+
+        // Right tail
+        for (int i = br * B; i <= r && i < n; ++i) {
+            sum += a[i] + lazy[br];
+        }
+
+        return sum;
+    }
+};
+
+int main() {
+    // Example usage
+    std::vector<long long> arr = {1, 2, 3, 4, 5, 6, 7, 8};
+    SqrtRangeAddRangeQuery sq(arr);
+
+    // Print initial array
+    std::cout << "Initial array: ";
+    for (int i = 0; i < arr.size(); ++i) {
+        std::cout << sq.getPoint(i) << " ";
+    }
+    std::cout << "\n";
+
+    // Add 10 to range [2, 5]
+    sq.add(2, 5, 10);
+    std::cout << "After adding 10 to range [2, 5]: ";
+    for (int i = 0; i < arr.size(); ++i) {
+        std::cout << sq.getPoint(i) << " ";
+    }
+    std::cout << "\n";
+
+    // Get point query at index 3
+    std::cout << "Point query at index 3: " << sq.getPoint(3) << "\n";
+
+    // Get range sum query for [1, 4]
+    std::cout << "Range sum query [1, 4]: " << sq.getRange(1, 4) << "\n";
+
+    // Add 5 to range [0, 7]
+    sq.add(0, 7, 5);
+    std::cout << "After adding 5 to range [0, 7]: ";
+    for (int i = 0; i < arr.size(); ++i) {
+        std::cout << sq.getPoint(i) << " ";
+    }
+    std::cout << "\n";
+
+    // Get range sum query for [0, 7]
+    std::cout << "Range sum query [0, 7]: " << sq.getRange(0, 7) << "\n";
+
+    return 0;
+}
+
+// int main()
+// {
+//     int n;
+//     cin >> n;
+//     vector<int> a(n);
+//     for (int i = 0; i < n; i++)
+//     {
+//         cin >> a[i];
+//     }
+//     int len = (int)sqrt(n + .0) + 1; // size of the block and the number of blocks
+//     vector<int> b(len);
+//     for (int i = 0; i < n; ++i)
+//         b[i / len] += a[i];
+
+//     int q;
+//     cin >> q;
+//     // answering the queries
+//     while (q--)
+//     {
+//         int l, r;
+//         cin >> l >> r;
+//         // read input data for the next query
+//         int sum = 0;
+//         for (int i = l; i <= r;)
+//         {
+//             if (i % len == 0 && i + len - 1 <= r)
+//             {
+//                 // if the whole block starting at i belongs to [l, r]
+//                 sum += b[i / len];
+//                 i += len;
+//             }
+//             else
+//             {
+//                 sum += a[i];
+//                 ++i;
+//             }
+//         }
+//     }
+// }
+
+===== Trie.cpp =====
+class Trie
+{
+private:
+    class Node
+    {
+        Node *links[26];    // Assuming lowercase English alphabet
+        int cntEndWith = 0; // Count of words ending at this node
+        int cntPrefix = 0;  // Count of words with prefix up to this node
+
+    public:
+        Node()
+        {
+            for (int i = 0; i < 26; i++)
+            {
+                links[i] = nullptr;
+            }
+        }
+
+        ~Node()
+        {
+            for (int i = 0; i < 26; i++)
+            {
+                delete links[i];
+            }
+        }
+
+        bool containsChar(char c) const
+        {
+            return links[c - 'a'] != nullptr;
+        }
+
+        Node *getNext(char c) const
+        {
+            return links[c - 'a'];
+        }
+
+        void putChar(char c, Node *node)
+        {
+            links[c - 'a'] = node;
+        }
+
+        void incrementEnd()
+        {
+            cntEndWith++;
+        }
+
+        void decrementEnd()
+        {
+            if (cntEndWith > 0)
+                cntEndWith--;
+        }
+
+        void incrementPrefix()
+        {
+            cntPrefix++;
+        }
+
+        void decrementPrefix()
+        {
+            if (cntPrefix > 0)
+                cntPrefix--;
+        }
+
+        int getEndCount() const
+        {
+            return cntEndWith;
+        }
+
+        int getPrefixCount() const
+        {
+            return cntPrefix;
+        }
+    };
+
+    Node *root;
+
+public:
+    Trie()
+    {
+        root = new Node();
+    }
+
+    ~Trie()
+    {
+        delete root;
+    }
+
+    // Insert a word into the Trie
+    void insert(const string &word)
+    {
+        Node *node = root;
+        for (char c : word)
+        {
+            if (!node->containsChar(c))
+            {
+                node->putChar(c, new Node());
+            }
+            node = node->getNext(c);
+            node->incrementPrefix();
+        }
+        node->incrementEnd();
+    }
+
+    // Count words equal to the given word
+    int countWordsEqualTo(const string &word) const
+    {
+        Node *node = root;
+        for (char c : word)
+        {
+            if (!node->containsChar(c))
+            {
+                return 0;
+            }
+            node = node->getNext(c);
+        }
+        return node->getEndCount();
+    }
+
+    // Count words starting with the given prefix
+    int countWordsStartingWith(const string &prefix) const
+    {
+        Node *node = root;
+        for (char c : prefix)
+        {
+            if (!node->containsChar(c))
+            {
+                return 0;
+            }
+            node = node->getNext(c);
+        }
+        return node->getPrefixCount();
+    }
+
+    // Erase a word from the Trie
+    // Erase a word from the Trie
+    void erase(const string &word)
+    {
+        // Stack to store nodes and characters for cleanup
+        vector<pair<Node *, char>> nodes;
+        Node *node = root;
+
+        // Traverse the word and collect nodes
+        for (char c : word)
+        {
+            if (!node->containsChar(c))
+            {
+                return; // Word not found
+            }
+            nodes.push_back({node, c});
+            node = node->getNext(c);
+            node->decrementPrefix();
+        }
+        node->decrementEnd();
+
+        // Clean up nodes if necessary
+        for (auto it = nodes.rbegin(); it != nodes.rend(); ++it)
+        {
+            Node *curr = it->first;
+            char c = it->second;
+            Node *child = curr->getNext(c);
+
+            // If the child node has no prefixes and no words ending, delete it
+            if (child->getPrefixCount() == 0 && child->getEndCount() == 0)
+            {
+                delete child;
+                curr->putChar(c, nullptr);
+            }
+            else
+            {
+                // If the node still has prefixes or words ending, stop cleanup
+                break;
+            }
+        }
+    }
+
+    // Check if a word exists in the Trie
+    bool contains(const string &word) const
+    {
+        return countWordsEqualTo(word) > 0;
+    }
+
+    // Clear the entire Trie
+    void clear()
+    {
+        delete root;
+        root = new Node();
+    }
+};
+
+===== Trieb.cpp =====
+class Trie{
+    class Node{
+        Node* link[2];
+        
+        public:
+        Node(){
+            link[0]=link[1]=NULL;
+        }
+
+        bool contains(ll v){
+            return link[v]!=NULL;
+        }
+
+        void put(ll v){
+            link[v]=new Node();
+        }
+
+        Node* getNext(ll v){
+            return link[v];
+        }
+
+
+    };
+
+    public:
+    Node* root;
+    Trie(){
+        root=new Node();
+    }
+
+    void insert(ll num){
+        Node* node=root;
+
+        for(ll i=31;i>=0;i--){
+            ll bit=(num>>i)&1;
+            if(!node->contains(bit)){
+                node->put(bit);
+            }
+            node=node->getNext(bit);
+        }
+    }
+
+    ll getMax(ll num){
+        Node* node=root;
+        ll ans=0;
+        for(ll i=31;i>=0;i--){
+            ll bit=(num>>i)&1;
+            if(node->contains(1-bit)){
+                ans|=(1<<i);
+                node=node->getNext(1-bit);
+            }
+            else if(node->contains(bit)){
+                node=node->getNext(bit);
+            }
+        }
+        return ans;
+    }
+};
+
